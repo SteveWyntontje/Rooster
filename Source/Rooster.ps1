@@ -41,8 +41,8 @@ IF ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
 	write-host "ROOSTER [-d Dag -u Uur] [-r] [-s Vak]"
 	write-host '-r, --Rooster	Geeft het rooster weer.'
 	write-host '-s, --Search	Zoekt wanneer een vak is.'
-	write-host '-d				De dag.'
-	write-host '-u				Het uur.'
+	write-host '-d		De dag.'
+	write-host '-u		Het uur.'
 	write-host 'De mogelijke vakken zijn: Ak, Bi, Dr, Du, Env, Fi, Fa, Gfs, Gs, Gtc, Lo, Ltc, Nask, Ne, Tu, Wi.'
 	write-host 'Error #1 betekent "Geen Les Hier".'
 	write-host 'Error #2 betekent "Verkeerde argumenten".'
