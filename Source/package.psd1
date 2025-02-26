@@ -1,6 +1,6 @@
 @{
-	Root = '/home/wynto/Rooster/Source/Rooster.ps1'
-	OutputPath = '/home/wynto/Rooster/Build/Ubuntu x64'
+	Root = 'c:\Users\wynto\Projects\PowerShell Stuff\Rooster\Source\Rooster.ps1'
+	OutputPath = 'c:\Users\wynto\Projects\PowerShell Stuff\Rooster\Build\Windows x64\Exe'
 	Package = @{
 		Enabled = $true
 		Obfuscate = $false
