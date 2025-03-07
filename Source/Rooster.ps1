@@ -305,11 +305,21 @@ ELSE {
 	IF ($true) {
 		# show console environment
 		switch ($Host.Name) {
-			'ConsoleHost'					{Write-Host "Running from CLI"}
-			'Windows PowerShell ISE Host'	{Write-Host "Running from GUI (Windows PowerShell ISE)"}
-			'Visual Studio Code Host'		{Write-Host "Running from GUI (VS Code)"}
-			'Explorer Host'					{Write-Host "Running from GUI (Explorer)"}
-			default							{Write-Host "Running from GUI ($_)" }
+			'ConsoleHost'{
+				Write-Host "Running from CLI"
+			}
+			'Windows PowerShell ISE Host'{
+				Write-Host "Running from GUI (Windows PowerShell ISE)"
+			}
+			'Visual Studio Code Host'{
+				Write-Host "Running from GUI (VS Code)"
+			}
+			'Explorer Host'{
+				Write-Host "Running from GUI (Explorer)"
+			}
+			default{
+				Write-Host "Running from GUI ($_)"
+			}
 		}
 	}
 	write-host "Error #2" -Foregroundcolor Red
