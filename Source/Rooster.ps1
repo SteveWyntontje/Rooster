@@ -75,7 +75,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
 	}
-	ELSEIF ($Args.count -eq 1) {
+	ELSEIF ($Args.count -eq 2) {
 		[int]$MaCounter = 0
 		while ($MaCounter -le 8) {
 			write-host $Maandag[$MaCounter]
@@ -114,7 +114,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
 	}
-	ELSEIF ($Args.count -eq 1) {
+	ELSEIF ($Args.count -eq 2) {
 		[int]$DiCounter = 0
 		while ($DiCounter -le 8) {
 			write-host $Dinsdag[$DiCounter]
@@ -153,7 +153,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
 	}
-	ELSEIF ($Args.count -eq 1) {
+	ELSEIF ($Args.count -eq 2) {
 		[int]$WoCounter = 0
 		while ($WoCounter -le 8) {
 			write-host $Woensdag[$WoCounter]
@@ -192,7 +192,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
 	}
-	ELSEIF ($Args.count -eq 1) {
+	ELSEIF ($Args.count -eq 2) {
 		[int]$DoCounter = 0
 		while ($DoCounter -le 8) {
 			write-host $Donderdag[$DoCounter]
@@ -231,7 +231,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
 	}
-	ELSEIF ($Args.count -eq 1) {
+	ELSEIF ($Args.count -eq 2) {
 		[int]$VrCounter = 0
 		while ($VrCounter -le 8) {
 			write-host $Vrijdag[$VrCounter]
