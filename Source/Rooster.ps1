@@ -302,26 +302,6 @@ ELSEIF ($Args[0] -eq "-r" -Or $Args[0] -eq "--Rooster") {
 	write-host $seprow2
 }
 ELSE {
-	IF ($true) {
-		# show console environment
-		switch ($Host.Name) {
-			'ConsoleHost'{
-				Write-Host "Running from CLI"
-			}
-			'Windows PowerShell ISE Host'{
-				Write-Host "Running from GUI (Windows PowerShell ISE)"
-			}
-			'Visual Studio Code Host'{
-				Write-Host "Running from GUI (VS Code)"
-			}
-			'Explorer Host'{
-				Write-Host "Running from GUI (Explorer)"
-			}
-			default{
-				Write-Host "Running from GUI ($_)"
-			}
-		}
-	}
 	write-host "Error #2" -Foregroundcolor Red
 	write-host 'Probeer "Rooster --help" in cmd uit te voeren.'
 	write-host `n -NoNewline
