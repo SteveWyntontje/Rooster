@@ -18,7 +18,7 @@ $Woensdag = "Env", "Lo", "Lo", "Ne", "Gs", "Gtc", "Te", "Du", ""
 $Donderdag = "", "Du", "Nask", "Wi", "Gs", "Ak", "Fa", "", ""
 $Vrijdag = "Dr", "Fa", "Nask", "Ltc", "Wi", "Te", "", "", ""
 
-$Vakken="Ak", "Bi", "Dr", "Du", "Env", "Fi", "Fa", "Gfs", "Gs", "Gtc", "Lo", "Ltc", "Nask", "Ne", "Tu", "Wi"
+$Vakken = "Ak", "Bi", "Dr", "Du", "Env", "Fi", "Fa", "Gfs", "Gs", "Gtc", "Lo", "Ltc", "Nask", "Ne", "Tu", "Wi"
 
 $Ak = "Di: 4e", "Do: 6e"
 $Bi = "Ma: 4e", "Di: 6e"
@@ -75,6 +75,13 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
 	}
+	ELSEIF ($Args.count -eq 1) {
+		[int]$MaCounter = 0
+		while ($MaCounter -le 8) {
+			write-host $Maandag[$MaCounter]
+			$MaCounter++
+		}
+	}
 	ELSE {
 		write-host "Error #2" -ForegroundColor Red
 	}
@@ -106,6 +113,13 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
+	}
+	ELSEIF ($Args.count -eq 1) {
+		[int]$DiCounter = 0
+		while ($DiCounter -le 8) {
+			write-host $Dinsdag[$DiCounter]
+			$DiCounter++
+		}
 	}
 	ELSE {
 		write-host "Error #2" -ForegroundColor Red
@@ -139,6 +153,13 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
 	}
+	ELSEIF ($Args.count -eq 1) {
+		[int]$WoCounter = 0
+		while ($WoCounter -le 8) {
+			write-host $Woensdag[$WoCounter]
+			$WoCounter++
+		}
+	}
 	ELSE {
 		write-host "Error #2" -ForegroundColor Red
 	}
@@ -170,6 +191,13 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
+	}
+	ELSEIF ($Args.count -eq 1) {
+		[int]$DoCounter = 0
+		while ($DoCounter -le 8) {
+			write-host $Donderdag[$DoCounter]
+			$DoCounter++
+		}
 	}
 	ELSE {
 		write-host "Error #2" -ForegroundColor Red
@@ -203,80 +231,101 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		write-host "Error #1" -ForegroundColor Red
 	}
+	ELSEIF ($Args.count -eq 1) {
+		[int]$VrCounter = 0
+		while ($VrCounter -le 8) {
+			write-host $Vrijdag[$VrCounter]
+			$VrCounter++
+		}
+	}
 	ELSE {
 		write-host "Error #2" -ForegroundColor Red
 	}
 }
 ELSEIF ($Args[0] -eq "-s" -Or $Args[0] -eq "--Search") {
-	[int]$i = 0
-	while ($i -le $($Args[1]).length) {
-		IF ($Args[1] -eq "Ak") {
-			write-host $Ak[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Bi") {
-			write-host $Bi[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Dr") {
-			write-host $Dr[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Du") {
-			write-host $Du[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Env") {
-			write-host $Env[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Fi") {
-			write-host $Fi[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Fa") {
-			write-host $Fa[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Gfs") {
-			write-host $Gfs[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Gs") {
-			write-host $Gs[$1]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Gtc") {
-			write-host $Gtc[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Lo") {
-			write-host $Lo[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Ltc") {
-			write-host $Ltc[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Nask") {
-			write-host $Nask[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Ne") {
-			write-host $Ne[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Tu") {
-			write-host $Tu[$i]
-			$i++
-		}
-		ELSEIF ($Args[1] -eq "Wi") {
-			write-host $Wi[$i]
-			$i++
+	[int]$NietVakCount = 0
+	[int]$WelVakCount = 0
+	[int]$VakkenCounter = 0
+	WHILE ($VakkenCounter -le $Vakken.count) {
+		IF ($Args[1] -ne $Vakken[$VakkenCounter]) {
+			$NietVakCount++
 		}
 		ELSE {
-			write-host "Error #2" -Foregroundcolor Red
+			$WelVakCount++
 		}
+		$VakkenCounter++
+	}
+	IF ($WelVakCount -eq 1) {
+		[int]$SearchCounter = 0
+		while ($SearchCounter -le $($Args[1]).length) {
+			IF ($Args[1] -eq "Ak") {
+				write-host $Ak[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Bi") {
+				write-host $Bi[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Dr") {
+				write-host $Dr[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Du") {
+				write-host $Du[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Env") {
+				write-host $Env[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Fi") {
+				write-host $Fi[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Fa") {
+				write-host $Fa[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Gfs") {
+				write-host $Gfs[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Gs") {
+				write-host $Gs[$1]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Gtc") {
+				write-host $Gtc[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Lo") {
+				write-host $Lo[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Ltc") {
+				write-host $Ltc[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Nask") {
+				write-host $Nask[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Ne") {
+				write-host $Ne[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Tu") {
+				write-host $Tu[$SearchCounter]
+				$SearchCounter++
+			}
+			ELSEIF ($Args[1] -eq "Wi") {
+				write-host $Wi[$SearchCounter]
+				$SearchCounter++
+			}
+		}
+	}
+	ELSE {
+		write-host "Error #2" -ForegroundColor Red
 	}
 }
 ELSEIF ($Args[0] -eq "-r" -Or $Args[0] -eq "--Rooster") {
