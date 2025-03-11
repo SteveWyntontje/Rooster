@@ -39,10 +39,10 @@ $Wi = "Ma: 1e", "Do: 4e", "Vr: 5e"
 
 IF ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
 	write-host "ROOSTER [-d Dag [-u Uur]] [-r] [-s Vak]"
-	write-host '-r, --Rooster     Geeft het rooster weer.'
+	write-host '-r, --Rooster	Geeft het rooster weer.'
 	write-host '-s, --Search	Zoekt wanneer een vak is.'
-	write-host '-d	    	De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
-	write-host '-u	    	Het uur.'
+	write-host '-d		De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
+	write-host '-u		Het uur.'
 	write-host 'Dagen: Ma, Di, Wo, Do, Vr.'
 	write-host 'Vakken: Ak, Bi, Dr, Du, Env, Fi, Fa, Gfs, Gs, Gtc, Lo, Ltc, Nask, Ne, Tu, Wi.'
 	write-host 'Error #1 betekent "Geen Les Hier".'
