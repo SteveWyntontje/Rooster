@@ -39,10 +39,10 @@ $Wi = "Ma: 1e", "Do: 4e", "Vr: 5e"
 
 IF ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
 	write-host "ROOSTER [-d Dag [-u Uur]] [-r] [-s Vak]"
-	write-host '-r, --Rooster	Geeft het rooster weer.'
+	write-host '-r, --Rooster     Geeft het rooster weer.'
 	write-host '-s, --Search	Zoekt wanneer een vak is.'
-	write-host '-d		De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
-	write-host '-u		Het uur.'
+	write-host '-d	    De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
+	write-host '-u	    Het uur.'
 	write-host 'Dagen: Ma, Di, Wo, Do, Vr.'
 	write-host 'Vakken: Ak, Bi, Dr, Du, Env, Fi, Fa, Gfs, Gs, Gtc, Lo, Ltc, Nask, Ne, Tu, Wi.'
 	write-host 'Error #1 betekent "Geen Les Hier".'
@@ -77,10 +77,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 		write-host "Error #1" -ForegroundColor Red
 	}
 	ELSEIF ($Args.count -eq 2) {
-		[int]$MaCounter = 0
-		while ($MaCounter -le 8) {
-			write-host $Maandag[$MaCounter]
-			$MaCounter++
+	[int]$MaCounter = 1
+	while ($MaCounter -le 9) {
+		write-host $MaCounter'e: ' -nonewline
+		write-host $Maandag[($MaCounter-1)]
+		$MaCounter++
 		}
 	}
 	ELSE {
@@ -116,10 +117,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 		write-host "Error #1" -ForegroundColor Red
 	}
 	ELSEIF ($Args.count -eq 2) {
-		[int]$DiCounter = 0
-		while ($DiCounter -le 8) {
-			write-host $Dinsdag[$DiCounter]
-			$DiCounter++
+	[int]$DiCounter = 1
+	while ($DiCounter -le 9) {
+		write-host $DiCounter'e: ' -nonewline
+		write-host $Dinsdag[($DiCounter-1)]
+		$DiCounter++
 		}
 	}
 	ELSE {
@@ -155,10 +157,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 		write-host "Error #1" -ForegroundColor Red
 	}
 	ELSEIF ($Args.count -eq 2) {
-		[int]$WoCounter = 0
-		while ($WoCounter -le 8) {
-			write-host $Woensdag[$WoCounter]
-			$WoCounter++
+	[int]$WoCounter = 1
+	while ($WoCounter -le 9) {
+		write-host $WoCounter'e: ' -nonewline
+		write-host $Woensdag[($WoCounter-1)]
+		$WoCounter++
 		}
 	}
 	ELSE {
@@ -194,10 +197,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 		write-host "Error #1" -ForegroundColor Red
 	}
 	ELSEIF ($Args.count -eq 2) {
-		[int]$DoCounter = 0
-		while ($DoCounter -le 8) {
-			write-host $Donderdag[$DoCounter]
-			$DoCounter++
+	[int]$DoCounter = 1
+	while ($DoCounter -le 9) {
+		write-host $DoCounter'e: ' -nonewline
+		write-host $Donderdag[($DoCounter-1)]
+		$DoCounter++
 		}
 	}
 	ELSE {
@@ -233,10 +237,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 		write-host "Error #1" -ForegroundColor Red
 	}
 	ELSEIF ($Args.count -eq 2) {
-		[int]$VrCounter = 0
-		while ($VrCounter -le 8) {
-			write-host $Vrijdag[$VrCounter]
-			$VrCounter++
+	[int]$VrCounter = 1
+	while ($VrCounter -le 9) {
+		write-host $VrCounter'e: ' -nonewline
+		write-host $Vrijdag[($VrCounter-1)]
+		$VrCounter++
 		}
 	}
 	ELSE {
@@ -292,7 +297,7 @@ ELSEIF ($Args[0] -eq "-s" -Or $Args[0] -eq "--Search") {
 				$SearchCounter++
 			}
 			ELSEIF ($Args[1] -eq "Gs") {
-				write-host $Gs[$1]
+				write-host $Gs[$SearchCounter]
 				$SearchCounter++
 			}
 			ELSEIF ($Args[1] -eq "Gtc") {
