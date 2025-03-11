@@ -263,7 +263,7 @@ ELSEIF ($Args[0] -eq "-s" -Or $Args[0] -eq "--Search") {
 	}
 	IF ($WelVakCount -eq 1) {
 		[int]$SearchCounter = 0
-		while ($SearchCounter -le $($Args[1]).length) {
+		while ($SearchCounter -lt $($Args[1]).length) {
 			IF ($Args[1] -eq "Ak") {
 				write-host $Ak[$SearchCounter]
 				$SearchCounter++
