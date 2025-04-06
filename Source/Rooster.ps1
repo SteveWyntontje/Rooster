@@ -50,11 +50,11 @@ Function Import-ICS {
     }
 
     # Update variables
-    $script:Maandag = $days["MO"]
-    $script:Dinsdag = $days["TU"]
-    $script:Woensdag = $days["WE"]
-    $script:Donderdag = $days["TH"]
-    $script:Vrijdag = $days["FR"]
+    $Maandag = $days["MO"]
+    $Dinsdag = $days["TU"]
+    $Woensdag = $days["WE"]
+    $Donderdag = $days["TH"]
+    $Vrijdag = $days["FR"]
 }
 
 # Example usage
