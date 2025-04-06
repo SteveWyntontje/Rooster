@@ -1,3 +1,66 @@
+# Function to fetch and parse .ics file
+Function Import-ICS {
+    Param (
+        [string]$Url
+    )
+
+    # Fetch the .ics file from the URL
+    try {
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing
+        $icsContent = $response.Content
+    } catch {
+        Write-Host "Failed to fetch the .ics file." -ForegroundColor Red
+        return
+    }
+
+    # Parse the .ics content
+    $events = @()
+    $currentEvent = @{}
+    foreach ($line in $icsContent -split "`n") {
+        $line = $line.Trim()
+        if ($line -eq "BEGIN:VEVENT") {
+            $currentEvent = @{}
+        } elseif ($line -eq "END:VEVENT") {
+            $events += $currentEvent
+        } elseif ($line -match "^(?<key>[^:;]+):(?<value>.+)$") {
+            $key = $matches['key']
+            $value = $matches['value']
+            $currentEvent[$key] = $value
+        }
+    }
+
+    # Map events to days
+    $days = @{
+        "MO" = @()
+        "TU" = @()
+        "WE" = @()
+        "TH" = @()
+        "FR" = @()
+    }
+
+    foreach ($event in $events) {
+        if ($event.ContainsKey("SUMMARY") -and $event.ContainsKey("DTSTART")) {
+            $summary = $event["SUMMARY"]
+            $startDate = [datetime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmssZ", $null)
+            $dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
+            if ($days.ContainsKey($dayCode)) {
+                $days[$dayCode] += $summary
+            }
+        }
+    }
+}
+
+# Example usage
+$icsUrl = "https://api.somtoday.nl/rest/v1/icalendar/stream/0792a6e2-9833-45e8-b1eb-1498cf22f10d/f894cd42-c5f0-452d-8c30-06d82eba86a2"
+Import-ICS -Url $icsUrl
+
+# Update variables
+$Maandag = $days["MO"]
+$Dinsdag = $days["TU"]
+$Woensdag = $days["WE"]
+$Donderdag = $days["TH"]
+$Vrijdag = $days["FR"]
+
 $dayrow = "  Dag	| Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
 $seprow1 = "════════|═══════════════════════════════════════"
 $seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
@@ -11,12 +74,6 @@ $row = @("   1e	|  Wi  ｜ Gfs  ｜ Env  ｜      ｜  Dr  ｜"
 	"   8e	|      ｜      ｜  Du  ｜      ｜      ｜"
 	"   9e	|      ｜      ｜      ｜      ｜      ｜"
 )
-
-$Maandag = "Wi", "Gtc", "Ltc", "Bi", "Ne", "Fi", "Env", "Error #1", "Error #1"
-$Dinsdag = "Gfs", "Gfs", "Gfs", "Ak", "Fi", "Bi", "Tu", "Error #1", "Error #1"
-$Woensdag = "Env", "Lo", "Lo", "Ne", "Gs", "Gtc", "Te", "Du", "Error #1"
-$Donderdag = "Error #1", "Du", "Nask", "Wi", "Gs", "Ak", "Fa", "Error #1", "Error #1"
-$Vrijdag = "Dr", "Fa", "Nask", "Ltc", "Wi", "Te", "Error #1", "Error #1", "Error #1"
 
 $Vakken = "Ak", "Bi", "Dr", "Du", "Env", "Fi", "Fa", "Gfs", "Gs", "Gtc", "Lo", "Ltc", "Nask", "Ne", "Te", "Tu", "Wi"
 
