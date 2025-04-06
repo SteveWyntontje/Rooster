@@ -48,18 +48,20 @@ Function Import-ICS {
             }
         }
     }
+
+    # Update variables
+    $script:Maandag = $days["MO"]
+    $script:Dinsdag = $days["TU"]
+    $script:Woensdag = $days["WE"]
+    $script:Donderdag = $days["TH"]
+    $script:Vrijdag = $days["FR"]
 }
 
 # Example usage
 $icsUrl = "https://api.somtoday.nl/rest/v1/icalendar/stream/0792a6e2-9833-45e8-b1eb-1498cf22f10d/f894cd42-c5f0-452d-8c30-06d82eba86a2"
 Import-ICS -Url $icsUrl
 
-# Update variables
-$Maandag = $days["MO"]
-$Dinsdag = $days["TU"]
-$Woensdag = $days["WE"]
-$Donderdag = $days["TH"]
-$Vrijdag = $days["FR"]
+# Existing code continues...
 
 $dayrow = "  Dag	| Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
 $seprow1 = "════════|═══════════════════════════════════════"
@@ -74,6 +76,7 @@ $row = @("   1e	|  Wi  ｜ Gfs  ｜ Env  ｜      ｜  Dr  ｜"
 	"   8e	|      ｜      ｜  Du  ｜      ｜      ｜"
 	"   9e	|      ｜      ｜      ｜      ｜      ｜"
 )
+
 
 $Vakken = "Ak", "Bi", "Dr", "Du", "Env", "Fi", "Fa", "Gfs", "Gs", "Gtc", "Lo", "Ltc", "Nask", "Ne", "Te", "Tu", "Wi"
 
