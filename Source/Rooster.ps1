@@ -1,59 +1,63 @@
 Function Import-ICS {
-    Param (
-        [string]$Url
-    )
+	Param (
+		[string]$Url
+	)
 
-    # Fetch the .ics file from the URL
-    try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing
-        $icsContent = $response.Content
-    } catch {
-        Write-Host "Failed to fetch the .ics file." -ForegroundColor Red
-        return
-    }
+	# Fetch the .ics file from the URL
+	try {
+		$response = Invoke-WebRequest -Uri $Url -UseBasicParsing
+		$icsContent = $response.Content
+	}
+ 	catch {
+		Write-Host "Failed to fetch the .ics file." -ForegroundColor Red
+		return
+	}
 
-    # Parse the .ics content
-    $events = @()
-    $currentEvent = @{}
-    foreach ($line in $icsContent -split "`n") {
-        $line = $line.Trim()
-        if ($line -eq "BEGIN:VEVENT") {
-            $currentEvent = @{}
-        } elseif ($line -eq "END:VEVENT") {
-            $events += $currentEvent
-        } elseif ($line -match "^(?<key>[^:;]+):(?<value>.+)$") {
-            $key = $matches['key']
-            $value = $matches['value']
-            $currentEvent[$key] = $value
-        }
-    }
+	# Parse the .ics content
+	$events = @()
+	$currentEvent = @{}
+	foreach ($line in $icsContent -split "`n") {
+		$line = $line.Trim()
+		if ($line -eq "BEGIN:VEVENT") {
+			$currentEvent = @{}
+		}
+		elseif ($line -eq "END:VEVENT") {
+			$events += $currentEvent
+		}
+		elseif ($line -match "^(?<key>[^:;]+):(?<value>.+)$") {
+			$key = $matches['key']
+			$value = $matches['value']
+			$currentEvent[$key] = $value
+		}
+	}
 
-    # Map events to days
-    $days = @{
-        "MO" = @()
-        "TU" = @()
-        "WE" = @()
-        "TH" = @()
-        "FR" = @()
-    }
+	# Map events to days
+	$days = @{
+		"MO" = @()
+		"TU" = @()
+		"WE" = @()
+		"TH" = @()
+		"FR" = @()
+	}
 
-    foreach ($event in $events) {
-        if ($event.ContainsKey("SUMMARY") -and $event.ContainsKey("DTSTART")) {
-            $summary = $event["SUMMARY"]
-            $startDate = [datetime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmssZ", $null)
-            $dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
-            if ($days.ContainsKey($dayCode)) {
-                $days[$dayCode] += $summary
-            }
-        }
-    }
+	foreach ($event in $events) {
+		if ($event.ContainsKey("SUMMARY") -and $event.ContainsKey("DTSTART")) {
+			$summary = $event["SUMMARY"]
+			$startDate = [datetime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmssZ", $null)
+			$dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
+			if ($days.ContainsKey($dayCode)) {
+				$days[$dayCode] += $summary
+			}
+		}
+	}
+	
 
-    # Update variables
-    $Maandag = $days["MO"]
-    $Dinsdag = $days["TU"]
-    $Woensdag = $days["WE"]
-    $Donderdag = $days["TH"]
-    $Vrijdag = $days["FR"]
+	# Update variables
+	$Maandag = $days["MO"]
+	$Dinsdag = $days["TU"]
+	$Woensdag = $days["WE"]
+	$Donderdag = $days["TH"]
+	$Vrijdag = $days["FR"]
 }
 
 Function Generate-Table {
@@ -61,21 +65,38 @@ Function Generate-Table {
         [hashtable]$Days
     )
 
-    $table = @()
-    for ($hour = 1; $hour -le 9; $hour++) {
-        $row = "   $hour" + "e   |"
-        foreach ($day in @("MO", "TU", "WE", "TH", "FR")) {
-            if ($Days[$day].Count -ge $hour) {
-                if ($($Days[$day][$hour - 1]).Length -eq 3) {
+	if (-not $Days[$day]) {
+		$Days[$day] = @("Error #1")
+	}
+	
+	$table = @()
+
+	$dayrow = "  Dag	|  Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
+	$seprow1 = "════════|═══════════════════════════════════════"
+	$seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+
+	$table += $dayrow
+	$table += $seprow1
+
+	for ($hour = 1; $hour -le 9; $hour++) {
+		$row = "   $hour" + "e   |"
+		foreach ($day in @("MO", "TU", "WE", "TH", "FR")) {
+			if ($Days[$day].Count -ge $hour) {
+				if ($($Days[$day][$hour - 1]).Length -eq 3) {
 					$row += " $($Days[$day][$hour - 1])  |"
-				} elseif ($($Days[$day][$hour - 1]).Length -eq 4) {
+				}
+				elseif ($($Days[$day][$hour - 1]).Length -eq 4) {
 					$row += " $($Days[$day][$hour - 1]) |"
-				} else {
+				}
+				else {
 					$row += "  $($Days[$day][$hour - 1])  |"
 				}
             } else {
                 $row += "       |"
             }
+			if ($day -ne "FR") {
+				$table += $seprow2
+			}
         }
         $table += $row
     }
@@ -85,11 +106,7 @@ Function Generate-Table {
 $icsUrl = "https://api.somtoday.nl/rest/v1/icalendar/stream/0792a6e2-9833-45e8-b1eb-1498cf22f10d/f894cd42-c5f0-452d-8c30-06d82eba86a2"
 Import-ICS -Url $icsUrl
 
-$dayrow = "  Dag	|  Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
-$seprow1 = "════════|═══════════════════════════════════════"
-$seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
-
-$row = Generate-Table -Days @{
+$Days = @{
 	"MO" = $Maandag
 	"TU" = $Dinsdag
 	"WE" = $Woensdag
@@ -97,7 +114,7 @@ $row = Generate-Table -Days @{
 	"FR" = $Vrijdag
 }
 
-
+$row = Generate-Table -Days $Days
 $Vakken = "Ak", "Bi", "Dr", "Du", "Env", "Fi", "Fa", "Gfs", "Gs", "Gtc", "Lo", "Ltc", "Nask", "Ne", "Te", "Tu", "Wi"
 
 $Ak = "Di: 4e", "Do: 6e"
@@ -203,11 +220,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 		}
 	}
 	ELSEIF ($Args.count -eq 2) {
-	[int]$MaCounter = 1
-	while ($MaCounter -le 9) {
-		write-host $MaCounter'e: ' -nonewline
-		write-host $Maandag[($MaCounter-1)]
-		$MaCounter++
+		[int]$MaCounter = 1
+		while ($MaCounter -le 9) {
+			write-host $MaCounter'e: ' -nonewline
+			write-host $Maandag[($MaCounter - 1)]
+			$MaCounter++
 		}
 	}
 	ELSE {
@@ -288,11 +305,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 		}
 	}
 	ELSEIF ($Args.count -eq 2) {
-	[int]$DiCounter = 1
-	while ($DiCounter -le 9) {
-		write-host $DiCounter'e: ' -nonewline
-		write-host $Dinsdag[($DiCounter-1)]
-		$DiCounter++
+		[int]$DiCounter = 1
+		while ($DiCounter -le 9) {
+			write-host $DiCounter'e: ' -nonewline
+			write-host $Dinsdag[($DiCounter - 1)]
+			$DiCounter++
 		}
 	}
 	ELSE {
@@ -373,11 +390,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 		}
 	}
 	ELSEIF ($Args.count -eq 2) {
-	[int]$WoCounter = 1
-	while ($WoCounter -le 9) {
-		write-host $WoCounter'e: ' -nonewline
-		write-host $Woensdag[($WoCounter-1)]
-		$WoCounter++
+		[int]$WoCounter = 1
+		while ($WoCounter -le 9) {
+			write-host $WoCounter'e: ' -nonewline
+			write-host $Woensdag[($WoCounter - 1)]
+			$WoCounter++
 		}
 	}
 	ELSE {
@@ -458,11 +475,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 		}
 	}
 	ELSEIF ($Args.count -eq 2) {
-	[int]$DoCounter = 1
-	while ($DoCounter -le 9) {
-		write-host $DoCounter'e: ' -nonewline
-		write-host $Donderdag[($DoCounter-1)]
-		$DoCounter++
+		[int]$DoCounter = 1
+		while ($DoCounter -le 9) {
+			write-host $DoCounter'e: ' -nonewline
+			write-host $Donderdag[($DoCounter - 1)]
+			$DoCounter++
 		}
 	}
 	ELSE {
@@ -543,11 +560,11 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 		}
 	}
 	ELSEIF ($Args.count -eq 2) {
-	[int]$VrCounter = 1
-	while ($VrCounter -le 9) {
-		write-host $VrCounter'e: ' -nonewline
-		write-host $Vrijdag[($VrCounter-1)]
-		$VrCounter++
+		[int]$VrCounter = 1
+		while ($VrCounter -le 9) {
+			write-host $VrCounter'e: ' -nonewline
+			write-host $Vrijdag[($VrCounter - 1)]
+			$VrCounter++
 		}
 	}
 	ELSE {
@@ -646,13 +663,13 @@ ELSEIF ($Args[0] -eq "-s" -Or $Args[0] -eq "--Search") {
 }
 ELSEIF ($Args[0] -eq "-r" -Or $Args[0] -eq "--Rooster") {
 	write-host $dayrow
-write-host $seprow1
-FOR ($i = 0; $i -lt 9; $i++) {
-	write-host $row[$i]
-	IF ($i -lt 8) {
-		write-host $seprow2
+	write-host $seprow1
+	FOR ($i = 0; $i -lt 9; $i++) {
+		write-host $row[$i]
+		IF ($i -lt 8) {
+			write-host $seprow2
+		}
 	}
-}
 }
 ELSE {
 	write-host "Error #2" -Foregroundcolor Red
