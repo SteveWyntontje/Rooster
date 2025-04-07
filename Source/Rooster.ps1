@@ -57,32 +57,45 @@ Function Import-ICS {
 }
 
 Function Generate-Table {
-	$dayrow = "  Dag	|  Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
-    $seprow1 = "════════|═══════════════════════════════════════"
-    $seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+    Param (
+        [hashtable]$Days
+    )
 
-    # Initialize the rows
-    $rows = @()
-    for ($i = 0; $i -lt 9; $i++) {
-        $row = "   $($i + 1)e	|"
+    $table = @()
+    for ($hour = 1; $hour -le 9; $hour++) {
+        $row = "   $hour" + "e   |"
         foreach ($day in @("MO", "TU", "WE", "TH", "FR")) {
-            $row += " $($days[$day][$i] -join ', ') ｜"
+            if ($Days[$day].Count -ge $hour) {
+                if ($($Days[$day][$hour - 1]).Length -eq 3) {
+					$row += " $($Days[$day][$hour - 1])  |"
+				} elseif ($($Days[$day][$hour - 1]).Length -eq 4) {
+					$row += " $($Days[$day][$hour - 1]) |"
+				} else {
+					$row += "  $($Days[$day][$hour - 1])  |"
+				}
+            } else {
+                $row += "       |"
+            }
         }
-        $rows += $row
+        $table += $row
     }
-	return $rows
-}	
+    return $table
+}
 
-# Example usage
 $icsUrl = "https://api.somtoday.nl/rest/v1/icalendar/stream/0792a6e2-9833-45e8-b1eb-1498cf22f10d/f894cd42-c5f0-452d-8c30-06d82eba86a2"
 Import-ICS -Url $icsUrl
 
-# Existing code continues...
-
-$dayrow = "  Dag	| Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
+$dayrow = "  Dag	|  Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
 $seprow1 = "════════|═══════════════════════════════════════"
 $seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
-$row = Generate-Table
+
+$row = Generate-Table -Days @{
+	"MO" = $Maandag
+	"TU" = $Dinsdag
+	"WE" = $Woensdag
+	"TH" = $Donderdag
+	"FR" = $Vrijdag
+}
 
 
 $Vakken = "Ak", "Bi", "Dr", "Du", "Env", "Fi", "Fa", "Gfs", "Gs", "Gtc", "Lo", "Ltc", "Nask", "Ne", "Te", "Tu", "Wi"
@@ -633,13 +646,13 @@ ELSEIF ($Args[0] -eq "-s" -Or $Args[0] -eq "--Search") {
 }
 ELSEIF ($Args[0] -eq "-r" -Or $Args[0] -eq "--Rooster") {
 	write-host $dayrow
-	write-host $seprow1
-	FOR ($i = 0; $i -lt 9; $i++) {
-		write-host $row[$i]
-		IF ($i -lt 8) {
-			write-host $seprow2
-		}
+write-host $seprow1
+FOR ($i = 0; $i -lt 9; $i++) {
+	write-host $row[$i]
+	IF ($i -lt 8) {
+		write-host $seprow2
 	}
+}
 }
 ELSE {
 	write-host "Error #2" -Foregroundcolor Red
