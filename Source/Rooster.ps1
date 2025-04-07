@@ -1,4 +1,3 @@
-# Function to fetch and parse .ics file
 Function Import-ICS {
     Param (
         [string]$Url
@@ -57,6 +56,23 @@ Function Import-ICS {
     $Vrijdag = $days["FR"]
 }
 
+Function Generate-Table {
+	$dayrow = "  Dag	|  Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
+    $seprow1 = "════════|═══════════════════════════════════════"
+    $seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+
+    # Initialize the rows
+    $rows = @()
+    for ($i = 0; $i -lt 9; $i++) {
+        $row = "   $($i + 1)e	|"
+        foreach ($day in @("MO", "TU", "WE", "TH", "FR")) {
+            $row += " $($days[$day][$i] -join ', ') ｜"
+        }
+        $rows += $row
+    }
+	return $rows
+}	
+
 # Example usage
 $icsUrl = "https://api.somtoday.nl/rest/v1/icalendar/stream/0792a6e2-9833-45e8-b1eb-1498cf22f10d/f894cd42-c5f0-452d-8c30-06d82eba86a2"
 Import-ICS -Url $icsUrl
@@ -66,16 +82,7 @@ Import-ICS -Url $icsUrl
 $dayrow = "  Dag	| Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
 $seprow1 = "════════|═══════════════════════════════════════"
 $seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
-$row = @("   1e	|  Wi  ｜ Gfs  ｜ Env  ｜      ｜  Dr  ｜"
-	"   2e	| Gtc  ｜ Gfs  ｜  Lo  ｜  Du  ｜  Fa  ｜"
-	"   3e	| Ltc  ｜ Gfs  ｜  Lo  ｜ Nask ｜ Nask ｜"
-	"   4e	|  Bi  ｜  Ak  ｜  Ne  ｜  Wi  ｜ Ltc  ｜"
-	"   5e	|  Ne  ｜  Fi  ｜  Gs  ｜  Gs  ｜  Wi  ｜"
-	"   6e	|  Fi  ｜  Bi  ｜ Gtc  ｜  Ak  ｜  Te  ｜"
-	"   7e	| Env  ｜  Tu  ｜  Te  ｜  Fa  ｜      ｜"
-	"   8e	|      ｜      ｜  Du  ｜      ｜      ｜"
-	"   9e	|      ｜      ｜      ｜      ｜      ｜"
-)
+$row = Generate-Table
 
 
 $Vakken = "Ak", "Bi", "Dr", "Du", "Env", "Fi", "Fa", "Gfs", "Gs", "Gtc", "Lo", "Ltc", "Nask", "Ne", "Te", "Tu", "Wi"
