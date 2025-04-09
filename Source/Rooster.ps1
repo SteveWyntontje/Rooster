@@ -8,7 +8,7 @@ Function Import-ICS {
 		$response = Invoke-WebRequest -Uri $Url -UseBasicParsing
 		$icsContent = $response.Content
 	}
- 	catch {
+	catch {
 		Write-Host "Failed to fetch the .ics file." -ForegroundColor Red
 		return
 	}
@@ -16,17 +16,20 @@ Function Import-ICS {
 	# Parse the .ics content
 	$events = @()
 	$currentEvent = @{}
-	foreach ($line in $icsContent -split "`n") {
+	FOREACH ($line in $icsContent -split "`n") {
 		$line = $line.Trim()
-		if ($line -eq "BEGIN:VEVENT") {
+		IF ($line -eq "BEGIN:VEVENT") {
 			$currentEvent = @{}
 		}
-		elseif ($line -eq "END:VEVENT") {
+		ELSEIF ($line -eq "END:VEVENT") {
 			$events += $currentEvent
 		}
-		elseif ($line -match "^(?<key>[^:;]+):(?<value>.+)$") {
+		ELSEIF ($line -match "^(?<key>[^:;]+)(;TZID=(?<tzid>[^:;]+))?:(?<value>.+)$") {
 			$key = $matches['key']
 			$value = $matches['value']
+			IF ($matches['tzid']) {
+				$currentEvent["TZID"] = $matches['tzid']
+			}
 			$currentEvent[$key] = $value
 		}
 	}
@@ -40,82 +43,131 @@ Function Import-ICS {
 		"FR" = @()
 	}
 
-	foreach ($event in $events) {
-		if ($event.ContainsKey("SUMMARY") -and $event.ContainsKey("DTSTART")) {
-			$summary = $event["SUMMARY"]
+	$Vakken = @()
+	FOREACH ($event in $events) {
+		IF (-not $event.ContainsKey("SUMMARY") -or -not $event.ContainsKey("DTSTART")) {
+			continue
+		}
+	
+		# Extract the desired part of the SUMMARY field
+		$Lokaal = $event["SUMMARY"] -match "([a-z0-9]{1,4})" | Out-Null
+		$extractedLokaal = $matches[0]
+		$Klas = $event["SUMMARY"] -match "$extractedLokaal - ([a-z0-9]{2})" | Out-Null
+		$extractedKlas = $matches[1]
+		$Vak = $event["SUMMARY"] -match "$extractedKlas([a-zA-Z]{2,4})" | Out-Null
+		$extractedVak = $matches[1]
+	
+		# Capitalize the first letter of the extracted summary
+		$extractedVak = $extractedVak.Substring(0, 1).ToUpper() + $extractedVak.Substring(1)
+		IF (-not $Vakken.Contains($extractedVak)) {
+			$Vakken += $extractedVak
+		}
+		
+		# Handle time zone (TZID) IF present
+		IF ($event.ContainsKey("TZID")) {
+			$timeZone = $event["TZID"]
+			$timeZoneInfo = [System.TimeZoneInfo]::FindSystemTimeZoneById($timeZone)
 			$startDate = [datetime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmssZ", $null)
-			$dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
-			if ($days.ContainsKey($dayCode)) {
-				$days[$dayCode] += $summary
+			$startDate = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId($startDate, $timeZone)
+		}
+		ELSE {
+			$startDate = [datetime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmss", $null)
+		}
+	
+		# Get the Dutch day code
+		$dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
+	
+		# Map Dutch day codes to English day codes
+		$dayCodeMap = @{
+			"MA" = "MO"
+			"DI" = "TU"
+			"WO" = "WE"
+			"DO" = "TH"
+			"VR" = "FR"
+		}
+	
+		IF ($dayCodeMap.ContainsKey($dayCode)) {
+			$mappedDayCode = $dayCodeMap[$dayCode]
+	
+			IF ($days.ContainsKey($mappedDayCode)) {
+				# Add the extracted summary only IF it doesn't already exist
+				IF (-not $days[$mappedDayCode].Contains($extractedVak)) {
+					$days[$mappedDayCode] += $extractedVak
+				}
 			}
 		}
 	}
-	
 
 	# Update variables
-	$Maandag = $days["MO"]
-	$Dinsdag = $days["TU"]
-	$Woensdag = $days["WE"]
-	$Donderdag = $days["TH"]
-	$Vrijdag = $days["FR"]
+	$Global:Maandag = $days["MO"]
+	$Global:Dinsdag = $days["TU"]
+	$Global:Woensdag = $days["WE"]
+	$Global:Donderdag = $days["TH"]
+	$Global:Vrijdag = $days["FR"]
+
+	$Vakken = $Vakken | Sort-Object
+	return $Vakken
 }
-
 Function Generate-Table {
-    Param (
-        [hashtable]$Days
-    )
+	Param (
+		[hashtable]$Days
+	)
 
-	if (-not $Days[$day]) {
-		$Days[$day] = @("Error #1")
+	# Ensure $Days is valid
+	IF (-not $Days) {
+		Write-Host "Error: Days hashtable is null or empty." -ForegroundColor Red
+		return @()
 	}
-	
+
 	$table = @()
 
-	$dayrow = "  Dag	|  Ma   ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
+	$dayrow = "  Dag	|  Ma  ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
 	$seprow1 = "════════|═══════════════════════════════════════"
 	$seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
 
 	$table += $dayrow
 	$table += $seprow1
 
-	for ($hour = 1; $hour -le 9; $hour++) {
+	FOR ($hour = 1; $hour -le 9; $hour++) {
 		$row = "   $hour" + "e   |"
-		foreach ($day in @("MO", "TU", "WE", "TH", "FR")) {
-			if ($Days[$day].Count -ge $hour) {
-				if ($($Days[$day][$hour - 1]).Length -eq 3) {
-					$row += " $($Days[$day][$hour - 1])  |"
+		FOREACH ($day in @("MO", "TU", "WE", "TH", "FR")) {
+			IF ($Days.ContainsKey($day) -and $Days[$day].Count -ge $hour) {
+				IF ($($Days[$day][$hour - 1]).Length -eq 3) {
+					$row += " $($Days[$day][$hour - 1])  ｜"
 				}
-				elseif ($($Days[$day][$hour - 1]).Length -eq 4) {
-					$row += " $($Days[$day][$hour - 1]) |"
+				ELSEIF ($($Days[$day][$hour - 1]).Length -eq 4) {
+					$row += " $($Days[$day][$hour - 1]) ｜"
 				}
-				else {
-					$row += "  $($Days[$day][$hour - 1])  |"
+				ELSE {
+				$row += "  $($Days[$day][$hour - 1])  ｜"
 				}
-            } else {
-                $row += "       |"
-            }
-			if ($day -ne "FR") {
-				$table += $seprow2
 			}
-        }
-        $table += $row
-    }
-    return $table
+			ELSE {
+				$row += "      ｜"
+			}
+		}
+		$table += $row
+		IF ($hour -lt 9) {
+			$table += $seprow2
+		}
+	}
+	return $table
 }
 
 $icsUrl = "https://api.somtoday.nl/rest/v1/icalendar/stream/0792a6e2-9833-45e8-b1eb-1498cf22f10d/f894cd42-c5f0-452d-8c30-06d82eba86a2"
-Import-ICS -Url $icsUrl
+
+$Vakken = Import-ICS -Url $icsUrl
 
 $Days = @{
-	"MO" = $Maandag
-	"TU" = $Dinsdag
-	"WE" = $Woensdag
-	"TH" = $Donderdag
-	"FR" = $Vrijdag
+    "MO" = $Maandag
+    "TU" = $Dinsdag
+    "WE" = $Woensdag
+    "TH" = $Donderdag
+    "FR" = $Vrijdag
 }
 
 $row = Generate-Table -Days $Days
-$Vakken = "Ak", "Bi", "Dr", "Du", "Env", "Fi", "Fa", "Gfs", "Gs", "Gtc", "Lo", "Ltc", "Nask", "Ne", "Te", "Tu", "Wi"
+
 
 $Ak = "Di: 4e", "Do: 6e"
 $Bi = "Ma: 4e", "Di: 6e"
@@ -149,7 +201,7 @@ IF ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
 ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	IF ($Args[2] -eq "-u" -And $Args[3] -eq "1") {
 		IF ($Maandag[0] -eq "Error #1") {
-			write-host $Maandag[0] -foregroundcolor red
+			write-host $Maandag[0] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[0]
@@ -157,7 +209,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "2") {
 		IF ($Maandag[1] -eq "Error #1") {
-			write-host $Maandag[1] -foregroundcolor red
+			write-host $Maandag[1] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[1]
@@ -165,7 +217,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "3") {
 		IF ($Maandag[3] -eq "Error #1") {
-			write-host $Maandag[2] -foregroundcolor red
+			write-host $Maandag[2] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[2]
@@ -173,7 +225,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "4") {
 		IF ($Maandag[4] -eq "Error #1") {
-			write-host $Maandag[3] -foregroundcolor red
+			write-host $Maandag[3] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[3]
@@ -181,7 +233,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "5") {
 		IF ($Maandag[4] -eq "Error #1") {
-			write-host $Maandag[4] -foregroundcolor red
+			write-host $Maandag[4] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[4]
@@ -189,7 +241,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "6") {
 		IF ($Maandag[5] -eq "Error #1") {
-			write-host $Maandag[5] -foregroundcolor red
+			write-host $Maandag[5] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[5]
@@ -197,7 +249,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "7") {
 		IF ($Maandag[6] -eq "Error #1") {
-			write-host $Maandag[6] -foregroundcolor red
+			write-host $Maandag[6] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[6]
@@ -205,7 +257,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "8") {
 		IF ($Maandag[7] -eq "Error #1") {
-			write-host $Maandag[7] -foregroundcolor red
+			write-host $Maandag[7] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[7]
@@ -213,7 +265,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		IF ($Maandag[8] -eq "Error #1") {
-			write-host $Maandag[8] -foregroundcolor red
+			write-host $Maandag[8] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Maandag[8]
@@ -234,7 +286,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Ma") {
 ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	IF ($Args[2] -eq "-u" -And $Args[3] -eq "1") {
 		IF ($Dinsdag[0] -eq "Error #1") {
-			write-host $Dinsdag[0] -foregroundcolor red
+			write-host $Dinsdag[0] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[0]
@@ -242,7 +294,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "2") {
 		IF ($Dinsdag[1] -eq "Error #1") {
-			write-host $Dinsdag[1] -foregroundcolor red
+			write-host $Dinsdag[1] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[1]
@@ -250,7 +302,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "3") {
 		IF ($Dinsdag[2] -eq "Error #1") {
-			write-host $Dinsdag[2] -foregroundcolor red
+			write-host $Dinsdag[2] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[2]
@@ -258,7 +310,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "4") {
 		IF ($Dinsdag[3] -eq "Error #1") {
-			write-host $Dinsdag[3] -foregroundcolor red
+			write-host $Dinsdag[3] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[3]
@@ -266,7 +318,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "5") {
 		IF ($Dinsdag[4] -eq "Error #1") {
-			write-host $Dinsdag[4] -foregroundcolor red
+			write-host $Dinsdag[4] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[4]
@@ -274,7 +326,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "6") {
 		IF ($Dinsdag[5] -eq "Error #1") {
-			write-host $Dinsdag[5] -foregroundcolor red
+			write-host $Dinsdag[5] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[5]
@@ -282,7 +334,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "7") {
 		IF ($Dinsdag[6] -eq "Error #1") {
-			write-host $Dinsdag[6] -foregroundcolor red
+			write-host $Dinsdag[6] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[6]
@@ -290,7 +342,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "8") {
 		IF ($Dinsdag[7] -eq "Error #1") {
-			write-host $Dinsdag[7] -foregroundcolor red
+			write-host $Dinsdag[7] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[7]
@@ -298,7 +350,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		IF ($Dinsdag[8] -eq "Error #1") {
-			write-host $Dinsdag[8] -foregroundcolor red
+			write-host $Dinsdag[8] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Dinsdag[8]
@@ -319,7 +371,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Di") {
 ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	IF ($Args[2] -eq "-u" -And $Args[3] -eq "1") {
 		IF ($Woensdag[0] -eq "Error #1") {
-			write-host $Woensdag[0] -foregroundcolor red
+			write-host $Woensdag[0] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[0]
@@ -327,7 +379,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "2") {
 		IF ($Woensdag[1] -eq "Error #1") {
-			write-host $Woensdag[1] -foregroundcolor red
+			write-host $Woensdag[1] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[1]
@@ -335,7 +387,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "3") {
 		IF ($Woensdag[2] -eq "Error #1") {
-			write-host $Woensdag[2] -foregroundcolor red
+			write-host $Woensdag[2] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[2]
@@ -343,7 +395,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "4") {
 		IF ($Woensdag[3] -eq "Error #1") {
-			write-host $Woensdag[3] -foregroundcolor red
+			write-host $Woensdag[3] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[3]
@@ -351,7 +403,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "5") {
 		IF ($Woensdag[4] -eq "Error #1") {
-			write-host $Woensdag[4] -foregroundcolor red
+			write-host $Woensdag[4] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[4]
@@ -359,7 +411,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "6") {
 		IF ($Woensdag[5] -eq "Error #1") {
-			write-host $Woensdag[5] -foregroundcolor red
+			write-host $Woensdag[5] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[5]
@@ -367,7 +419,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "7") {
 		IF ($Woensdag[6] -eq "Error #1") {
-			write-host $Woensdag[6] -foregroundcolor red
+			write-host $Woensdag[6] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[6]
@@ -375,7 +427,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "8") {
 		IF ($Woensdag[7] -eq "Error #1") {
-			write-host $Woensdag[7] -foregroundcolor red
+			write-host $Woensdag[7] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[7]
@@ -383,7 +435,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		IF ($Woensdag[8] -eq "Error #1") {
-			write-host $Woensdag[8] -foregroundcolor red
+			write-host $Woensdag[8] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Woensdag[8]
@@ -404,7 +456,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Wo") {
 ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	IF ($Args[2] -eq "-u" -And $Args[3] -eq "1") {
 		IF ($Donderdag[0] -eq "Error #1") {
-			write-host $Donderdag[0] -foregroundcolor red
+			write-host $Donderdag[0] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[0]
@@ -412,7 +464,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "2") {
 		IF ($Donderdag[1] -eq "Error #1") {
-			write-host $Donderdag[1] -foregroundcolor red
+			write-host $Donderdag[1] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[1]
@@ -420,7 +472,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "3") {
 		IF ($Donderdag[2] -eq "Error #1") {
-			write-host $Donderdag[2] -foregroundcolor red
+			write-host $Donderdag[2] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[2]
@@ -428,7 +480,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "4") {
 		IF ($Donderdag[3] -eq "Error #1") {
-			write-host $Donderdag[3] -foregroundcolor red
+			write-host $Donderdag[3] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[3]
@@ -436,7 +488,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "5") {
 		IF ($Donderdag[4] -eq "Error #1") {
-			write-host $Donderdag[4] -foregroundcolor red
+			write-host $Donderdag[4] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[4]
@@ -444,7 +496,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "6") {
 		IF ($Donderdag[5] -eq "Error #1") {
-			write-host $Donderdag[5] -foregroundcolor red
+			write-host $Donderdag[5] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[5]
@@ -452,7 +504,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "7") {
 		IF ($Donderdag[6] -eq "Error #1") {
-			write-host $Donderdag[6] -foregroundcolor red
+			write-host $Donderdag[6] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[6]
@@ -460,7 +512,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "8") {
 		IF ($Donderdag[7] -eq "Error #1") {
-			write-host $Donderdag[7] -foregroundcolor red
+			write-host $Donderdag[7] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[7]
@@ -468,7 +520,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		IF ($Donderdag[8] -eq "Error #1") {
-			write-host $Donderdag[8] -foregroundcolor red
+			write-host $Donderdag[8] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Donderdag[8]
@@ -489,7 +541,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Do") {
 ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	IF ($Args[2] -eq "-u" -And $Args[3] -eq "1") {
 		IF ($Vrijdag[0] -eq "Error #1") {
-			write-host $Vrijdag[0] -foregroundcolor red
+			write-host $Vrijdag[0] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[0]
@@ -497,7 +549,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "2") {
 		IF ($Vrijdag[1] -eq "Error #1") {
-			write-host $Vrijdag[1] -foregroundcolor red
+			write-host $Vrijdag[1] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[1]
@@ -505,7 +557,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "3") {
 		IF ($Vrijdag[2] -eq "Error #1") {
-			write-host $Vrijdag[2] -foregroundcolor red
+			write-host $Vrijdag[2] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[2]
@@ -513,7 +565,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "4") {
 		IF ($Vrijdag[3] -eq "Error #1") {
-			write-host $Vrijdag[3] -foregroundcolor red
+			write-host $Vrijdag[3] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[3]
@@ -521,7 +573,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "5") {
 		IF ($Vrijdag[4] -eq "Error #1") {
-			write-host $Vrijdag[4] -foregroundcolor red
+			write-host $Vrijdag[4] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[4]
@@ -529,7 +581,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "6") {
 		IF ($Vrijdag[5] -eq "Error #1") {
-			write-host $Vrijdag[5] -foregroundcolor red
+			write-host $Vrijdag[5] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[5]
@@ -537,7 +589,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "7") {
 		IF ($Vrijdag[6] -eq "Error #1") {
-			write-host $Vrijdag[6] -foregroundcolor red
+			write-host $Vrijdag[6] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[6]
@@ -545,7 +597,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "8") {
 		IF ($Vrijdag[7] -eq "Error #1") {
-			write-host $Vrijdag[7] -foregroundcolor red
+			write-host $Vrijdag[7] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[7]
@@ -553,7 +605,7 @@ ELSEIF ($Args[0] -eq "-d" -And $Args[1] -eq "Vr") {
 	}
 	ELSEIF ($Args[2] -eq "-u" -And $Args[3] -eq "9") {
 		IF ($Vrijdag[8] -eq "Error #1") {
-			write-host $Vrijdag[8] -foregroundcolor red
+			write-host $Vrijdag[8] -FORegroundcolor red
 		}
 		ELSE {
 			write-host $Vrijdag[8]
@@ -662,14 +714,10 @@ ELSEIF ($Args[0] -eq "-s" -Or $Args[0] -eq "--Search") {
 	}
 }
 ELSEIF ($Args[0] -eq "-r" -Or $Args[0] -eq "--Rooster") {
-	write-host $dayrow
-	write-host $seprow1
-	FOR ($i = 0; $i -lt 9; $i++) {
+	FOR ($i = 0; $i -lt 19; $i++) {
 		write-host $row[$i]
-		IF ($i -lt 8) {
-			write-host $seprow2
-		}
 	}
+	write-host `n -NoNewline
 }
 ELSE {
 	write-host "Error #2" -Foregroundcolor Red
