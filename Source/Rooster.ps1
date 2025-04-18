@@ -35,10 +35,10 @@ Function Import-ICS {
 	}
 
 	$lessonTimes = @(
-        "08:10", "09:00", "09:50", 					# Morning lessons
-        "11:00", "11:50",							# After first break
-        "13:10", "14:00", "14:50", "15:40", "16:30"	# After second break
-    )
+		"08:10", "09:00", "09:50", # Morning lessons
+		"11:00", "11:50", # After first break
+		"13:10", "14:00", "14:50", "15:40", "16:30"	# After second break
+	)
 
 	# Map events to days
 	$days = @{
@@ -81,19 +81,19 @@ Function Import-ICS {
 		}
 	
 		# Determine the lesson slot
-        $lessonSlot = @{}
-        for ($i = 0; $i -lt $lessonTimes.Count - 1; $i++) {
-            $startTime = [datetime]::ParseExact($lessonTimes[$i], "HH:mm", $null)
-            $endTime = [datetime]::ParseExact($lessonTimes[$i + 1], "HH:mm", $null)
-            if ($startDate.TimeOfDay -ge $startTime.TimeOfDay -and $startDate.TimeOfDay -lt $endTime.TimeOfDay) {
-                $lessonSlot[$i] = ($i + 1) + "e" # e.g., "1e", "2e"
-                break
-            }
-        }
+		$lessonSlot = @{}
+		for ($i = 0; $i -lt $lessonTimes.Count - 1; $i++) {
+			$startTime = [datetime]::ParseExact($lessonTimes[$i], "HH:mm", $null)
+			$endTime = [datetime]::ParseExact($lessonTimes[$i + 1], "HH:mm", $null)
+			if ($startDate.TimeOfDay -ge $startTime.TimeOfDay -and $startDate.TimeOfDay -lt $endTime.TimeOfDay) {
+				$lessonSlot[$i] = ($i + 1) + "e" # e.g., "1e", "2e"
+				break
+			}
+		}
 
-        if (-not $lessonSlot) {
-            continue # Skip events that don't fit into a lesson slot
-        }
+		if (-not $lessonSlot) {
+			continue # Skip events that don't fit into a lesson slot
+		}
 
 		# Get the Dutch day code
 		$dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
@@ -232,34 +232,34 @@ IF ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
 ELSEIF ($Args[0] -eq "-d") {
 	IF ($DagMap.ContainsKey($Args[1])) {
 		$SelectedDag = $DagMap[$Args[1]]
-		FOREACH ($Dag in $Dagen) {
-			IF ($Dag -eq $SelectedDag) {
-				IF ($Args.count -eq 2) {
-					FOR ($Counter = 1; $Counter -le 9; $Counter++) {
-						Write-Host "$Counter"e: " -NoNewline
-                        Write-Host $($Dag)[$Counter - 1]
-                    }
-				}
-                ELSEIF ($Args[2] -eq "-u") {
-					IF ($Args[3] -match "^[1-9]$") {
-                    	$HourIndex = [int]$Args[3] - 1
-                    	IF ($($Dag)[$HourIndex] -eq "Error #1") {
-							Write-Host $($Dag)[$HourIndex] -ForegroundColor Red
-						}
-						ELSE {
-							Write-Host $($Dag)[$HourIndex]
-						}
-					}
-				}
-				ELSE {
-					Write-Host "Error #2" -ForegroundColor Red
+		IF ($Dagen -contains $SelectedDag) {
+			IF ($Args.Count -eq 2) {
+				FOR ($Counter = 1; $Counter -le 9; $Counter++) {
+					Write-Host "$Counter"e: " -NoNewline
+					Write-Host $($SelectedDag)[$Counter - 1]
 				}
 			}
+			ELSEIF ($Args.Count -eq 4 -and $Args[2] -eq "-u" -and $Args[3] -match "^[1-9]$") {
+				$HourIndex = [int]$Args[3] - 1
+				$HourValue = $($SelectedDag)[$HourIndex]
+				IF ($HourValue -eq "Error #1") {
+					Write-Host $HourValue -ForegroundColor Red
+				}
+				ELSE {
+					Write-Host $HourValue
+				}
+			}
+			ELSE {
+				Write-Host "Error #2" -ForegroundColor Red
+			}
+		}
+		ELSE {
+			Write-Host "Error #2" -ForegroundColor Red
 		}
 	}
-}
-ELSE {
-	Write-Host "Error #2" -ForegroundColor Red
+	ELSE {
+		Write-Host "Error #2" -ForegroundColor Red
+	}
 }
 ELSEIF ($Args[0] -eq "-s" -Or $Args[0] -eq "--Search") {
 	[int]$NietVakCount = 0
