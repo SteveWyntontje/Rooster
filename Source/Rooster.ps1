@@ -60,11 +60,20 @@ Function Import-ICS {
 		$extractedLokaal = $matches[0]
 		$Klas = $event["SUMMARY"] -match "$extractedLokaal - ([a-z0-9]{2})" | Out-Null
 		$extractedKlas = $matches[1]
-		$Vak = $event["SUMMARY"] -match "$extractedKlas([a-zA-Z]{2,4})" | Out-Null
+		$Vak = $event["SUMMARY"] -match "$extractedKlas([a-zA-Z]{2,8})" | Out-Null
 		$extractedVak = $matches[1]
+		IF ($extractedVak -match "^[a-zA-Z]{8,10}$") {
+			$extractedVak = ""
+		}
 	
 		# Capitalize the first letter of the extracted summary
-		$extractedVak = $extractedVak.Substring(0, 1).ToUpper() + $extractedVak.Substring(1)
+		IF ($extractedVak -eq "") {
+			continue
+		}
+		ELSE {
+			$extractedVak = $extractedVak.Substring(0, 1).ToUpper() + $extractedVak.Substring(1)
+		}
+		
 		IF (-not $Vakken.Contains($extractedVak)) {
 			$Vakken += $extractedVak
 		}
@@ -86,7 +95,7 @@ Function Import-ICS {
 			$startTime = [datetime]::ParseExact($lessonTimes[$i], "HH:mm", $null)
 			$endTime = [datetime]::ParseExact($lessonTimes[$i + 1], "HH:mm", $null)
 			if ($startDate.TimeOfDay -ge $startTime.TimeOfDay -and $startDate.TimeOfDay -lt $endTime.TimeOfDay) {
-				$lessonSlot[$i] = ($i + 1) + "e" # e.g., "1e", "2e"
+				$lessonSlot[$i] = ($i + 1)
 				break
 			}
 		}
@@ -111,7 +120,7 @@ Function Import-ICS {
 			$mappedDayCode = $dayCodeMap[$dayCode]
 	
 			IF ($days.ContainsKey($mappedDayCode)) {
-				# Add the extracted summary only IF it doesn't already exist
+				# Add the extracted summary only if it doesn't already exist
 				IF (-not $days[$mappedDayCode].Contains($extractedVak)) {
 					$days[$mappedDayCode] += $extractedVak
 				}
@@ -234,14 +243,16 @@ ELSEIF ($Args[0] -eq "-d") {
 		$SelectedDag = $DagMap[$Args[1]]
 		IF ($Dagen -contains $SelectedDag) {
 			IF ($Args.Count -eq 2) {
+				$DayArray = Get-Variable -Name $SelectedDag -ValueOnly
 				FOR ($Counter = 1; $Counter -le 9; $Counter++) {
-					Write-Host "$Counter"e: " -NoNewline
-					Write-Host $($SelectedDag)[$Counter - 1]
+					Write-Host $Counter"e: " -NoNewline
+					Write-Host $DayArray[$Counter - 1]
 				}
 			}
 			ELSEIF ($Args.Count -eq 4 -and $Args[2] -eq "-u" -and $Args[3] -match "^[1-9]$") {
+				$DayArray = Get-Variable -Name $SelectedDag -ValueOnly
 				$HourIndex = [int]$Args[3] - 1
-				$HourValue = $($SelectedDag)[$HourIndex]
+				$HourValue = $DayArray[$HourIndex]
 				IF ($HourValue -eq "Error #1") {
 					Write-Host $HourValue -ForegroundColor Red
 				}
@@ -254,7 +265,7 @@ ELSEIF ($Args[0] -eq "-d") {
 			}
 		}
 		ELSE {
-			Write-Host "Error #2" -ForegroundColor Red
+			Write-Host "Error #3" -ForegroundColor Red
 		}
 	}
 	ELSE {
@@ -276,7 +287,7 @@ ELSEIF ($Args[0] -eq "-s" -Or $Args[0] -eq "--Search") {
 	}
 	IF ($WelVakCount -eq 1) {
 		[int]$SearchCounter = 0
-		WHILE ($SearchCounter -lt $($Args[1]).Length) {
+		WHILE ($SearchCounter -le $($Args[1]).Length) {
 			FOREACH ($Vak in $Vakken) {
 				IF ($Args[1] -eq $Vak) {
 					write-host $(Get-Variable -Name $Args[1] -ValueOnly)[$SearchCounter]
