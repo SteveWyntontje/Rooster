@@ -3,17 +3,16 @@ Function Import-ICS {
 		[string]$Url
 	)
 
-	# Fetch the .ics file from the URL
-	try {
+	TRY {
 		$response = Invoke-WebRequest -Uri $Url -UseBasicParsing
 		$icsContent = $response.Content
 	}
-	catch {
+	CATCH {
 		Write-Host "Failed to fetch the .ics file." -ForegroundColor Red
-		return
+		RETURN
 	}
 
-	# Parse the .ics content
+	
 	$events = @()
 	$currentEvent = @{}
 	FOREACH ($line in $icsContent -split "`n") {
@@ -35,12 +34,12 @@ Function Import-ICS {
 	}
 
 	$lessonTimes = @(
-		"08:10", "09:00", "09:50", # Morning lessons
-		"11:00", "11:50", # After first break
-		"13:10", "14:00", "14:50", "15:40", "16:30"	# After second break
+		"08:10", "09:00", "09:50", "10:40",
+		"11:00", "11:50", "12:40",
+		"13:10", "14:00", "14:50", "15:40", "16:30"
 	)
 
-	# Map events to days
+	
 	$days = @{
 		"MO" = @()
 		"TU" = @()
@@ -52,10 +51,9 @@ Function Import-ICS {
 	$Vakken = @()
 	FOREACH ($event in $events) {
 		IF (-not $event.ContainsKey("SUMMARY") -or -not $event.ContainsKey("DTSTART")) {
-			continue
+			CONTINUE
 		}
-	
-		# Extract the desired part of the SUMMARY field
+
 		$Lokaal = $event["SUMMARY"] -match "([a-z0-9]{1,4})" | Out-Null
 		$extractedLokaal = $matches[0]
 		$Klas = $event["SUMMARY"] -match "$extractedLokaal - ([a-z0-9]{2})" | Out-Null
@@ -65,10 +63,9 @@ Function Import-ICS {
 		IF ($extractedVak -match "^[a-zA-Z]{8,10}$") {
 			$extractedVak = ""
 		}
-	
-		# Capitalize the first letter of the extracted summary
+
 		IF ($extractedVak -eq "") {
-			continue
+			CONTINUE
 		}
 		ELSE {
 			$extractedVak = $extractedVak.Substring(0, 1).ToUpper() + $extractedVak.Substring(1)
@@ -78,7 +75,6 @@ Function Import-ICS {
 			$Vakken += $extractedVak
 		}
 		
-		# Handle time zone (TZID) IF present
 		IF ($event.ContainsKey("TZID")) {
 			$timeZone = $event["TZID"]
 			$timeZoneInfo = [System.TimeZoneInfo]::FindSystemTimeZoneById($timeZone)
@@ -88,26 +84,23 @@ Function Import-ICS {
 		ELSE {
 			$startDate = [datetime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmss", $null)
 		}
-	
-		# Determine the lesson slot
+
 		$lessonSlot = @{}
-		for ($i = 0; $i -lt $lessonTimes.Count - 1; $i++) {
+		FOR ($i = 0; $i -lt $lessonTimes.Count - 1; $i++) {
 			$startTime = [datetime]::ParseExact($lessonTimes[$i], "HH:mm", $null)
 			$endTime = [datetime]::ParseExact($lessonTimes[$i + 1], "HH:mm", $null)
-			if ($startDate.TimeOfDay -ge $startTime.TimeOfDay -and $startDate.TimeOfDay -lt $endTime.TimeOfDay) {
+			IF ($startDate.TimeOfDay -ge $startTime.TimeOfDay -and $startDate.TimeOfDay -lt $endTime.TimeOfDay) {
 				$lessonSlot[$i] = ($i + 1)
-				break
+				BREAK
 			}
 		}
 
-		if (-not $lessonSlot) {
-			continue # Skip events that don't fit into a lesson slot
+		IF (-not $lessonSlot) {
+			CONTINUE
 		}
 
-		# Get the Dutch day code
 		$dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
-	
-		# Map Dutch day codes to English day codes
+
 		$dayCodeMap = @{
 			"MA" = "MO"
 			"DI" = "TU"
@@ -120,15 +113,13 @@ Function Import-ICS {
 			$mappedDayCode = $dayCodeMap[$dayCode]
 	
 			IF ($days.ContainsKey($mappedDayCode)) {
-				# Add the extracted summary only if it doesn't already exist
 				IF (-not $days[$mappedDayCode].Contains($extractedVak)) {
 					$days[$mappedDayCode] += $extractedVak
 				}
 			}
 		}
 	}
-
-	# Update variables
+	
 	$Global:Maandag = $days["MO"]
 	$Global:Dinsdag = $days["TU"]
 	$Global:Woensdag = $days["WE"]
@@ -143,7 +134,6 @@ Function Generate-Table {
 		[hashtable]$Days
 	)
 
-	# Ensure $Days is valid
 	IF (-not $Days) {
 		Write-Host "Error #3" -ForegroundColor Red
 		return @()
