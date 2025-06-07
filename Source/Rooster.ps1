@@ -307,5 +307,5 @@ ELSE {
 	write-host "Error #2" -Foregroundcolor Red
 	write-host 'Probeer "Rooster --help" in cmd uit te voeren.'
 	write-host `n -NoNewline
-	Pause
+	cmd /c pause
 }
