@@ -8,13 +8,15 @@ Function Import-ICS {
 		$icsContent = $response.Content
 	}
 	CATCH {
-		Write-Host "Failed to fetch the .ics file." -ForegroundColor Red
+		IF (!($Args[0] -eq "--register")) {
+			Write-Host "Kon het .ics-bestand niet downloaden." -ForegroundColor Red
+		}
 		RETURN
 	}
 
-	
 	$events = @()
 	$currentEvent = @{}
+	$VakTimes = @{}
 	FOREACH ($line in $icsContent -split "`n") {
 		$line = $line.Trim()
 		IF ($line -eq "BEGIN:VEVENT") {
@@ -99,6 +101,20 @@ Function Import-ICS {
 			CONTINUE
 		}
 
+        $dayShort = $startDate.ToString("ddd", [System.Globalization.CultureInfo]::GetCultureInfo("nl-NL"))
+        $dayShort = $dayShort.ToLower()
+        $dag = $dayShort.Substring(0, 1).ToUpper() + $dayShort.Substring(1)
+
+        $uur = "$($lessonSlot.Values[0])e"
+        $slot = "${dag}: $uur"
+
+        if (-not $VakTimes.ContainsKey($extractedVak)) {
+            $VakTimes[$extractedVak] = @()
+        }
+        if (-not $VakTimes[$extractedVak].Contains($slot)) {
+            $VakTimes[$extractedVak] += $slot
+        }
+
 		$dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
 
 		$dayCodeMap = @{
@@ -125,6 +141,10 @@ Function Import-ICS {
 	$Global:Woensdag = $days["WE"]
 	$Global:Donderdag = $days["TH"]
 	$Global:Vrijdag = $days["FR"]
+
+	foreach ($vak in $VakTimes.Keys) {
+        Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
+    }
 
 	$Vakken = $Vakken | Sort-Object
 	return $Vakken
@@ -174,7 +194,12 @@ Function Generate-Table {
 	return $table
 }
 
-$icsUrl = "https://api.somtoday.nl/rest/v1/icalendar/stream/0792a6e2-9833-45e8-b1eb-1498cf22f10d/f894cd42-c5f0-452d-8c30-06d82eba86a2"
+IF (!(Test-Path "HKCU:\Software\Rooster\icsUrl" -PathType Leaf)) {
+	Write-Host "Error #3" -ForegroundColor Red
+}
+ELSE {
+	$icsUrl = Get-ItemPropertyValue -Path "HKCU:\Software\Rooster" -Name "icsUrl"
+}
 
 $Vakken = Import-ICS -Url $icsUrl
 
@@ -198,30 +223,18 @@ $DagMap = @{
 	"Vr" = "Vrijdag"
 }
 
-$Ak = "Di: 4e", "Do: 6e"
-$Bi = "Ma: 4e", "Di: 6e"
-$Dr = "Vr: 1e"
-$Du = "Wo: 8e", "Do: 2e"
-$Env = "Ma: 7e", "Wo: 1e"
-$Fi = "Ma: 6e", "Di: 5e"
-$Fa = "Do: 7e", "Vr: 2e"
-$Gfs = "Ma: 1e", "Ma: 2e", "Ma: 3e"
-$Gs = "Wo: 5e", "Do: 5e"
-$Gtc = "Ma: 2e", "Wo: 6e"
-$Lo = "Wo: 2e", "Wo: 3e"
-$Ltc = "Ma: 3e", "Vr: 4e"
-$Nask = "Do: 3e", "Vr: 3e"
-$Ne = "Ma: 5e", "Wo: 4e"
-$Te = "Wo: 7e", "Vr: 6e"
-$Tu = "Di: 7e"
-$Wi = "Ma: 1e", "Do: 4e", "Vr: 5e"
+IF (!(Test-Path "HKCU:\Software\Rooster")) {
+	New-Item -Path "HKCU:\Software\Rooster" -Force | Out-Null
+}
 
 IF ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
-	write-host "ROOSTER [-d Dag [-u Uur]] [-r] [-s Vak]"
+	write-host "ROOSTER [-d Dag [-u Uur]] [-r] [-s Vak] [--Register URL] [-h]"
 	write-host '-r, --Rooster	Geeft het rooster weer.'
 	write-host '-s, --Search	Zoekt wanneer een vak is.'
-	write-host '-d  	De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
-	write-host '-u  	Het uur.'
+	write-host '-d		De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
+	write-host '-u		Het uur.'
+	write-host '--Register		Registreert jouw Somtoday.'
+	write-host '-h, --help		Toont deze helptekst.'
 	write-host 'Dagen: Ma, Di, Wo, Do, Vr.'
 	write-host 'Vakken: Ak, Bi, Dr, Du, Env, Fi, Fa, Gfs, Gs, Gtc, Lo, Ltc, Nask, Ne, Tu, Wi.'
 	write-host 'Error #1 betekent "Geen Les Hier".'
@@ -293,9 +306,28 @@ ELSEIF ($Args[0] -eq "-r" -Or $Args[0] -eq "--Rooster") {
 	}
 	write-host `n -NoNewline
 }
+ELSEIF ($Args[0] -eq "--Register") {
+	IF ($Args.Count -eq 2) {
+		New-ItemProperty -Path "HKCU:\Software\Rooster" -Name "icsUrl" -Value $Args[1] -PropertyType String -Force | Out-Null
+	}
+	ELSE {
+		Write-Host 'Ga naar Somtoday. Open de instellingen. Ga naar "Agenda" en kopieer de link nadat je op "Aan de slag" hebt geklikt.'
+		$URLInput = Read-Host "Plak hier de link"
+		IF ($URLInput -notmatch "https://api\.somtoday.nl/rest/v1/icalendar/stream/[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}/[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}") {
+			Write-Host "Plak hier alsjeblieft een link." -ForegroundColor Red
+		}
+		ELSEIF ($URLInput -eq "") {
+			Write-Host "Voer hier alleen een link in." -ForegroundColor Red
+		}
+		ELSE {
+			New-ItemProperty -Path "HKCU:\Software\Rooster" -Name "icsUrl" -Value $URLInput -PropertyType String -Force
+		}
+	}
+}
 ELSE {
 	write-host "Error #2" -Foregroundcolor Red
 	write-host 'Probeer "Rooster --help" in cmd uit te voeren.'
 	write-host `n -NoNewline
 	cmd /c pause
+	exit 2
 }
