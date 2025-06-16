@@ -8,7 +8,7 @@ Function Import-ICS {
 		$icsContent = $response.Content
 	}
 	CATCH {
-		IF (!($Args[0] -eq "--register")) {
+		IF ($Args[0] -ne "--register") {
 			Write-Host "Kon het .ics-bestand niet downloaden." -ForegroundColor Red
 		}
 		RETURN
@@ -194,11 +194,12 @@ Function Generate-Table {
 	return $table
 }
 
-IF (!(Test-Path "HKCU:\Software\Rooster\icsUrl" -PathType Leaf)) {
+IF (!(Test-Path "HKCU:\Software\Rooster")) {
 	Write-Host "Error #3" -ForegroundColor Red
+	Write-Host 'Voer eerst "Rooster --register" uit.' -ForegroundColor Red
 }
 ELSE {
-	$icsUrl = Get-ItemPropertyValue -Path "HKCU:\Software\Rooster" -Name "icsUrl"
+	$icsUrl = (Get-ItemProperty -Path "HKCU:\Software\Rooster" -Name "icsUrl").icsUrl
 }
 
 $Vakken = Import-ICS -Url $icsUrl
@@ -221,10 +222,6 @@ $DagMap = @{
 	"Wo" = "Woensdag"
 	"Do" = "Donderdag"
 	"Vr" = "Vrijdag"
-}
-
-IF (!(Test-Path "HKCU:\Software\Rooster")) {
-	New-Item -Path "HKCU:\Software\Rooster" -Force | Out-Null
 }
 
 IF ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
@@ -307,27 +304,37 @@ ELSEIF ($Args[0] -eq "-r" -Or $Args[0] -eq "--Rooster") {
 	write-host `n -NoNewline
 }
 ELSEIF ($Args[0] -eq "--Register") {
-	IF ($Args.Count -eq 2) {
+	IF (($Args.Count -eq 2) -and ($Args[1] -match "https://api\.somtoday.nl/rest/v1/icalendar/stream/[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}/[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}")) {
 		New-ItemProperty -Path "HKCU:\Software\Rooster" -Name "icsUrl" -Value $Args[1] -PropertyType String -Force | Out-Null
 	}
 	ELSE {
 		Write-Host 'Ga naar Somtoday. Open de instellingen. Ga naar "Agenda" en kopieer de link nadat je op "Aan de slag" hebt geklikt.'
 		$URLInput = Read-Host "Plak hier de link"
 		IF ($URLInput -notmatch "https://api\.somtoday.nl/rest/v1/icalendar/stream/[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}/[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}") {
-			Write-Host "Plak hier alsjeblieft een link." -ForegroundColor Red
-		}
-		ELSEIF ($URLInput -eq "") {
 			Write-Host "Voer hier alleen een link in." -ForegroundColor Red
 		}
+		ELSEIF ($URLInput -eq "") {
+			Write-Host "Voer hier alsjeblieft een link in." -ForegroundColor Red
+		}
 		ELSE {
-			New-ItemProperty -Path "HKCU:\Software\Rooster" -Name "icsUrl" -Value $URLInput -PropertyType String -Force
+			New-ItemProperty -Path "HKCU:\Software\Rooster" -Name "icsUrl" -Value $URLInput -PropertyType String -Force | Out-Null
+			Write-Host "Link succesvol geregistreerd." -ForegroundColor Green
 		}
 	}
 }
 ELSE {
-	write-host "Error #2" -Foregroundcolor Red
-	write-host 'Probeer "Rooster --help" in cmd uit te voeren.'
-	write-host `n -NoNewline
-	cmd /c pause
-	exit 2
+	IF (!(Test-Path "HKCU:\Software\Rooster")) {
+		Write-Host "Error #3" -ForegroundColor Red
+		Write-Host 'Voer eerst "Rooster --register" uit.' -ForegroundColor Red
+		Write-Host ""
+		cmd /c pause
+		exit 3
+	}
+	ELSE {
+		Write-Host "Error #2" -Foregroundcolor Red
+		Write-Host 'Probeer "Rooster --help" in cmd uit te voeren.'
+		Write-Host ""
+		cmd /c pause
+		exit 2
+	}
 }
