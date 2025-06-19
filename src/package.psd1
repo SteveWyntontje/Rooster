@@ -1,6 +1,6 @@
 @{
-	Root = 'c:\Users\wynto\Projects\PowerShell Stuff\Rooster\Source\Rooster.ps1'
-	OutputPath = 'c:\Users\wynto\Projects\PowerShell Stuff\Rooster\Build\Windows x64\Exe'
+	Root = 'src\Rooster.ps1'
+	OutputPath = 'build'
 	Package = @{
 		Enabled = $true
 		Obfuscate = $false
@@ -9,7 +9,7 @@
 		FileVersion = '2.1.0'
 		FileDescription = 'Een programma om je rooster mee te zien.'
 		ProductName = 'Rooster'
-		ProductVersion = '2.1.0'
+		ProductVersion = '2.3.0'
 		Copyright = 'Wynton de Kort'
 		RequireElevation = $false
 		ApplicationIconPath = ''

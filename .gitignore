@@ -1,5 +1,3 @@
-Source/package.psd1
-Build/Ubuntu x64/bin/
-Build/Windows x64/bin/
+build/bin/
 Git Commit Delete.ps1
 .vscode/launch.json
