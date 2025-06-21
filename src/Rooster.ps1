@@ -4,16 +4,15 @@ Function Import-ICS {
 	)
 
 	TRY {
-		$response = Invoke-WebRequest -Uri $Url -UseBasicParsing
+		$response = Invoke-WebRequest -Uri $Url
 		$icsContent = $response.Content
 	}
 	CATCH {
-		IF ($Args[0] -ne "--register") {
-			Write-Host "Kon het .ics-bestand niet downloaden." -ForegroundColor Red
-		}
+		Write-Host "Kon het .ics-bestand niet downloaden." -ForegroundColor Red
 		RETURN
 	}
 
+	Write-Host $icsContent
 	$events = @()
 	$currentEvent = @{}
 	$VakTimes = @{}
@@ -149,7 +148,7 @@ Function Import-ICS {
 	$Vakken = $Vakken | Sort-Object
 	return $Vakken
 }
-Function Generate-Table {
+Function New-Table {
 	Param (
 		[hashtable]$Days
 	)
@@ -194,13 +193,16 @@ Function Generate-Table {
 	return $table
 }
 
-IF (!(Test-Path "HKCU:\Software\Rooster")) {
-	Write-Host "Error #3" -ForegroundColor Red
-	Write-Host 'Voer eerst "Rooster --register" uit.' -ForegroundColor Red
-}
-ELSE {
+Try {
+	Test-Path "HKCU:\Software\Rooster"
 	$icsUrl = (Get-ItemProperty -Path "HKCU:\Software\Rooster" -Name "icsUrl").icsUrl
 }
+Catch {
+	Write-Host "Error #3" -ForegroundColor Red
+	Write-Host 'Voer eerst "Rooster --register" uit.' -ForegroundColor Red
+	Write-Host "`n"
+}
+
 
 $Vakken = Import-ICS -Url $icsUrl
 
@@ -212,7 +214,7 @@ $Days = @{
 	"FR" = $Vrijdag
 }
 
-$row = Generate-Table -Days $Days
+$row = New-Table -Days $Days
 
 $Dagen = @("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
 $DagCodes = @("Ma", "Di", "Wo", "Do", "Vr")
@@ -225,7 +227,7 @@ $DagMap = @{
 }
 
 IF ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
-	write-host "ROOSTER [-d Dag [-u Uur]] [-r] [-s Vak] [--Register URL] [-h]"
+	write-host "ROOSTER [-d Dag [-u Uur]] [-r] [-s Vak] [--Register [URL]] [-h]"
 	write-host '-r, --Rooster	Geeft het rooster weer.'
 	write-host '-s, --Search	Zoekt wanneer een vak is.'
 	write-host '-d		De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
@@ -317,24 +319,20 @@ ELSEIF ($Args[0] -eq "--Register") {
 			Write-Host "Voer hier alsjeblieft een link in." -ForegroundColor Red
 		}
 		ELSE {
+			Try {
 			New-ItemProperty -Path "HKCU:\Software\Rooster" -Name "icsUrl" -Value $URLInput -PropertyType String -Force | Out-Null
 			Write-Host "Link succesvol geregistreerd." -ForegroundColor Green
+			}
+			Catch {
+				Write-Host "Er is een fout opgetreden bij het registreren van de link." -ForegroundColor Red
+			}
 		}
 	}
 }
 ELSE {
-	IF (!(Test-Path "HKCU:\Software\Rooster")) {
-		Write-Host "Error #3" -ForegroundColor Red
-		Write-Host 'Voer eerst "Rooster --register" uit.' -ForegroundColor Red
-		Write-Host ""
-		cmd /c pause
-		exit 3
-	}
-	ELSE {
-		Write-Host "Error #2" -Foregroundcolor Red
-		Write-Host 'Probeer "Rooster --help" in cmd uit te voeren.'
-		Write-Host ""
-		cmd /c pause
-		exit 2
-	}
+	Write-Host "Error #2" -Foregroundcolor Red
+	Write-Host 'Probeer "Rooster --help" in cmd uit te voeren.'
+	Write-Host ""
+	cmd /c pause
+	exit 2
 }
