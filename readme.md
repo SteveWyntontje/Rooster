@@ -24,6 +24,3 @@ Voer "rooster --help" uit en je krijgt help.
 
 Als je zelf wil builden zou je even moeten kijken in BUILDING.MD.
 
-## Support
-
-Als je wil helpen met het programma mail me dan [hier](mailto:wyntontjes123@outlook.com).
