@@ -19,8 +19,3 @@ Voer "rooster -r" uit om je rooster te zien. Als je een vak wil opzoeken in je r
 ### Help
 
 Voer "rooster --help" uit en je krijgt help.
-
-## Builden
-
-Als je zelf wil builden zou je even moeten kijken in BUILDING.MD.
-
