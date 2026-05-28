@@ -1,3 +1,4 @@
-build/bin/
+build
+
 Git Commit Delete.ps1
-.vscode/launch.json
+
