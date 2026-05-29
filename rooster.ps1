@@ -12,7 +12,6 @@ Function Import-ICS {
 		return
 	}
 
-	Write-Debug $icsContent
 	$events = @()
 	$currentEvent = @{}
 	$VakTimes = @{}
@@ -34,58 +33,56 @@ Function Import-ICS {
 		}
 	}
 
-	$lessonTimes = @(
-		"08:10", "09:00", "09:50", "10:40",
-		"11:00", "11:50", "12:40",
-		"13:10", "14:00", "14:50", "15:40", "16:30"
+	$lessonStartTimes = @(
+		"08:10", "09:00", "09:50",
+		"11:00", "11:50",
+		"13:10", "14:00", "14:50", "15:40"
 	)
 
-	
+	$lessonEndTimes = @(
+		"09:00", "09:50", "10:40",
+		"11:50", "12:40",
+		"14:00", "14:50", "15:40", "16:30"
+	)
+
 	$days = @{
-		"MO" = @()
-		"TU" = @()
-		"WE" = @()
-		"TH" = @()
-		"FR" = @()
+		"Ma" = @()
+		"Di" = @()
+		"Wo" = @()
+		"Do" = @()
+		"Vr" = @()
 	}
 
 	$Vakken = @()
 	foreach ($event in $events) {
-		if (-not $event.ContainsKey("SUMMARY") -or -not $event.ContainsKey("DTSTART")) {
+		if (-not $event.ContainsKey("SUMMARY") -or -not $event.ContainsKey("DTSTART") -or -not $event.ContainsKey("DTEND")) {
 			continue
 		}
 
 		$summary = $event["SUMMARY"]
 		$extractedLokaal = ([regex]::Match($summary, '([a-z0-9]{1,4})')).Groups[1].Value
-		$extractedKlas = ([regex]::Match($summary, "$extractedLokaal - ([a-z0-9]{2})")).Groups[1].Value
+		$extractedKlas = ([regex]::Match($summary, "$extractedLokaal - ([a-z0-9]{1})")).Groups[1].Value
 		$extractedVak = ([regex]::Match($summary, "$extractedKlas([a-zA-Z]{2,8})")).Groups[1].Value
 		if ($extractedVak -match "^[a-zA-Z]{8,10}$") {
 			$extractedVak = ""
 		}
-
 		if ($extractedVak -eq "") {
 			continue
 		}
-		else {
-			$extractedVak = $extractedVak.Substring(0, 1).ToUpper() + $extractedVak.Substring(1)
-		}
-		
 		if (-not $Vakken.Contains($extractedVak)) {
 			$Vakken += $extractedVak
 		}
 		
 		$startDate = [datetime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmssZ", $null)
-		if ($event.ContainsKey("TZID")) {
-			$timeZone = $event["TZID"]
-			$timeZoneInfo = [System.TimeZoneInfo]::FindSystemTimeZoneById($timeZone)
-			$startDate = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId($startDate, $timeZone)
-		}
+		$startTime = $startDate.TimeOfDay
+		$endDate = [datetime]::ParseExact($event["DTEND"], "yyyyMMddTHHmmssZ", $null)
+		$endTime = $endDate.TimeOfDay
 
 		$lessonSlot = @{}
-		for ($i = 0; $i -lt $lessonTimes.Count - 1; $i++) {
-			$startTime = [datetime]::ParseExact($lessonTimes[$i], "HH:mm", $null)
-			$endTime = [datetime]::ParseExact($lessonTimes[$i + 1], "HH:mm", $null)
-			if ($startDate.TimeOfDay -ge $startTime.TimeOfDay -and $startDate.TimeOfDay -lt $endTime.TimeOfDay) {
+		for ($i = 0; $i -lt $lessonStartTimes.Count - 1; $i++) {
+			$testingStartTime = [datetime]::ParseExact($lessonStartTimes[$i], "HH:mm", $null)
+			$testingEndTime = [datetime]::ParseExact($lessonEndTimes[$i], "HH:mm", $null)
+			if ($startTime -eq $testingStartTime.TimeOfDay -and $endTime -eq $testingEndTime.TimeOfDay) {
 				$lessonSlot[$i] = ($i + 1)
 				break
 			}
@@ -101,7 +98,6 @@ Function Import-ICS {
 
 		$uur = "$($lessonSlot.Values[0])e"
 		$slot = "${dag}: $uur"
-
 		if (-not $VakTimes.ContainsKey($extractedVak)) {
 			$VakTimes[$extractedVak] = @()
 		}
@@ -109,38 +105,27 @@ Function Import-ICS {
 			$VakTimes[$extractedVak] += $slot
 		}
 
-		$dayCode = $startDate.ToString("ddd").ToUpperInvariant().Substring(0, 2)
+		$dayCode = $startDate.ToString("ddd", [System.Globalization.CultureInfo]::GetCultureInfo("nl-NL")).ToUpperInvariant().Substring(0, 2)
 
-		$dayCodeMap = @{
-			"MA" = "MO"
-			"DI" = "TU"
-			"WO" = "WE"
-			"DO" = "TH"
-			"VR" = "FR"
-		}
-
-		if ($dayCodeMap.ContainsKey($dayCode)) {
-			$mappedDayCode = $dayCodeMap[$dayCode]
-	
-			if ($days.ContainsKey($mappedDayCode)) {
-				if (-not $days[$mappedDayCode].Contains($extractedVak)) {
-					$days[$mappedDayCode] += $extractedVak
+		if ($days.ContainsKey($dayCode)) {
+				if (-not $days[$dayCode].Contains($extractedVak)) {
+					$days[$dayCode] += $extractedVak
 				}
-			}
 		}
 	}
 	
-	$Global:Maandag = $days["MO"]
-	$Global:Dinsdag = $days["TU"]
-	$Global:Woensdag = $days["WE"]
-	$Global:Donderdag = $days["TH"]
-	$Global:Vrijdag = $days["FR"]
+	$Global:Maandag = $days["Ma"]
+	$Global:Dinsdag = $days["Di"]
+	$Global:Woensdag = $days["Wo"]
+	$Global:Donderdag = $days["Do"]
+	$Global:Vrijdag = $days["Vr"]
 
 	foreach ($vak in $VakTimes.Keys) {
 		Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
 	}
 
 	$Vakken = $Vakken | Sort-Object
+	Write-Host $vakken
 	return $Vakken
 }
 Function New-Table {
@@ -157,14 +142,14 @@ Function New-Table {
 
 	$dayrow = "  Dag	|  Ma  ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
 	$seprow1 = "════════|═══════════════════════════════════════"
-	$seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+	$seprow2 = "⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
 
 	$table += $dayrow
 	$table += $seprow1
 
 	for ($hour = 1; $hour -le 9; $hour++) {
 		$row = "   $hour" + "e   |"
-		foreach ($day in @("MO", "TU", "WE", "TH", "FR")) {
+		foreach ($day in @("Ma", "Di", "Wo", "Do", "Vr")) {
 			if ($Days.ContainsKey($day) -and $Days[$day].Count -ge $hour) {
 				if ($($Days[$day][$hour - 1]).Length -eq 3) {
 					$row += " $($Days[$day][$hour - 1])  ｜"
@@ -189,20 +174,20 @@ Function New-Table {
 }
 
 if ($isWindows) {
-	Test-Path "HKCU:\Software\rooster" | Out-Null || Write-Host "Error #3`nVoer eerst `"rooster --register`"uit`n" -ForegroundColor Red && $icsUrl (Get-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl").icsUrl
+	Test-Path "HKCU:\Software\rooster" | Out-Null || Write-Host "Error #3`nVoer eerst `"rooster --register`"uit`n" -ForegroundColor Red && set-variable icsUrl (Get-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl").icsUrl
 }
 elseif ($isLinux) {
-	Test-Path "~/.config/rooster/icsUrl" | Out-Null || Write-Host "Error #3`nVoer eerst `"rooster --register`"uit`n" -ForegroundColor Red && $icsUrl = (Get-Content -Path ~/.config/rooster/icsUrl)
+	Test-Path "~/.config/rooster/icsUrl" | Out-Null || Write-Host "Error #3`nVoer eerst `"rooster --register`"uit`n" -ForegroundColor Red && set-variable icsUrl (Get-Content -Path ~/.config/rooster/icsUrl)
 }
 
 $Vakken = Import-ICS -Url $icsUrl
 
 $Days = @{
-	"MO" = $Maandag
-	"TU" = $Dinsdag
-	"WE" = $Woensdag
-	"TH" = $Donderdag
-	"FR" = $Vrijdag
+	"Ma" = $Maandag
+	"Di" = $Dinsdag
+	"Wo" = $Woensdag
+	"Do" = $Donderdag
+	"Vr" = $Vrijdag
 }
 
 $row = New-Table -Days $Days
