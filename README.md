@@ -4,7 +4,13 @@
 
 1. Download [rooster.psm1](../../releases).
 2. Kopieer rooster.psm1 naar je CurrentUser modules pad (zie [hier](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.6#long-description)).
-3. Plak ```Import-Module $HOME/.local/share/powershell/Modules/rooster.psm1``` in ```$profile```.
+3. Plak ```pwsh
+if ($isLinux) {
+    Import-Module $HOME/.local/share/powershell/Modules/rooster.psm1
+}
+elseif ($isWindows) {
+    Import-Module $HOME\Documents\PowerShell\Modules\rooster.psm1
+}``` in ```$profile```.
 4. Voer ```rooster``` uit.
 
 ## Hoe het werkt
