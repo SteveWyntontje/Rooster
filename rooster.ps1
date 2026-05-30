@@ -115,7 +115,12 @@ Function Import-ICS {
 	$Global:Vrijdag = $days["Vr"]
 
 	foreach ($vak in $VakTimes.Keys) {
-		Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
+		if ($vak -ne $null) {
+			Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
+		}
+		else {
+			throw "Error #3"
+		}
 	}
 
 	$Vakken = $Vakken | Sort-Object
