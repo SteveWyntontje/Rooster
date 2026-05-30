@@ -299,7 +299,7 @@ elseif ($Args[0] -eq "--register") {
 				New-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl" -Value $URLInput -PropertyType String -Force | Out-Null && Write-Host "Link succesvol geregistreerd." -ForegroundColor Green || Write-Host "Er is een fout opgetreden bij het registreren van de link."
 			}
 			elseif ($isLinux) {
-				New-Item -ItemType Directory -Path ~/.config/rooster -Force
+				New-Item -ItemType Directory -Path ~/.config/rooster -Force | Out-Null
 				New-Item -Path "~/.config/rooster" -Name "icsUrl" -ItemType File -Value $URLInput -Force | Out-Null && Write-Host "Link succesvol geregistreerd." -ForegroundColor Green || Write-Host "Er is een fout opgetreden bij het registreren van de link."
 			}
 		}
