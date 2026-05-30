@@ -115,7 +115,7 @@ Function Import-ICS {
 	$Global:Vrijdag = $days["Vr"]
 
 	foreach ($vak in $VakTimes.Keys) {
-		if ($vak -ne $null) {
+		if ($vak -ne "") {
 			Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
 		}
 		else {
