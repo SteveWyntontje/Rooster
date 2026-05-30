@@ -119,7 +119,7 @@ Function Import-ICS {
 			Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
 		}
 		else {
-			throw "Error #3"
+			Write-Error "Error #3"
 		}
 	}
 
