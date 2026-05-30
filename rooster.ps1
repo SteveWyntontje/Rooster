@@ -155,7 +155,7 @@ Function New-Table {
 					$row += " $($Days[$day][$hour - 1]) ｜"
 				}
 				else {
-					$row += " $($Days[$day][$hour - 1]) ｜"
+					$row += " $($Days[$day][$hour - 1])｜"
 				}
 			}
 			else {
