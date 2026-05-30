@@ -159,7 +159,7 @@ Function New-Table {
 				}
 			}
 			else {
-				$row += "      ｜"
+				$row += "       ｜"
 			}
 		}
 		$table += $row
