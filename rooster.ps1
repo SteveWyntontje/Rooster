@@ -8,8 +8,8 @@ Function Import-ICS {
 		$icsContent = $response.Content
 	}
 	catch {
-		Write-Host "Kan het .ics-bestand niet downloaden." -ForegroundColor Red
-		return
+		throw "Kan het .ics-bestand niet downloaden."
+		
 	}
 
 	$events = @()
@@ -127,7 +127,7 @@ Function New-Table {
 	)
 
 	if (-not $Days) {
-		Write-Host "Error #3" -ForegroundColor Red
+		throw "Error #3"
 		return @()
 	}
 
@@ -167,10 +167,10 @@ Function New-Table {
 }
 
 if ($isWindows) {
-	Test-Path "HKCU:\Software\rooster" | Out-Null || Write-Host "Error #3`nVoer eerst `"rooster --register`"uit`n" -ForegroundColor Red && set-variable icsUrl (Get-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl").icsUrl
+	Test-Path "HKCU:\Software\rooster" | Out-Null || throw "Error #3`nVoer eerst `"rooster --register`"uit`n" && set-variable icsUrl (Get-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl").icsUrl
 }
 elseif ($isLinux) {
-	Test-Path "~/.config/rooster/icsUrl" | Out-Null || Write-Host "Error #3`nVoer eerst `"rooster --register`"uit`n" -ForegroundColor Red && set-variable icsUrl (Get-Content -Path ~/.config/rooster/icsUrl)
+	Test-Path "~/.config/rooster/icsUrl" | Out-Null || throw "Error #3`nVoer eerst `"rooster --register`"uit`n" && set-variable icsUrl (Get-Content -Path ~/.config/rooster/icsUrl)
 }
 
 $Vakken = Import-ICS -Url $icsUrl
@@ -225,22 +225,22 @@ elseif ($Args[0] -eq "-d") {
 				$HourIndex = [int]$Args[3] - 1
 				$HourValue = $DayArray[$HourIndex]
 				if ($HourValue -eq "Error #1") {
-					Write-Host $HourValue -ForegroundColor Red
+					throw $HourValue
 				}
 				else {
 					Write-Host $HourValue
 				}
 			}
 			else {
-				Write-Host "Error #2" -ForegroundColor Red
+				throw "Error #2"
 			}
 		}
 		else {
-			Write-Host "Error #3" -ForegroundColor Red
+			throw "Error #3"
 		}
 	}
 	else {
-		Write-Host "Error #2" -ForegroundColor Red
+		throw "Error #2"
 	}
 }
 elseif ($Args[0] -eq "-s" -Or $Args[0] -eq "--search") {
@@ -288,25 +288,25 @@ elseif ($Args[0] -eq "--register") {
 		Write-Host '(Als je geen Somtoday gebruikt maar een andere ELO moet je daarin een iCalender link zien te vinden.)'
 		$URLInput = Read-Host "Plak hier de link"
 		if ($URLInput -notmatch "(https://.+)|(http://.+)") {
-			Write-Host "Voer hier alleen een link in." -ForegroundColor Red
+			Write-Host "Voer hier alleen een link in."
 		}
 		elseif ($URLInput -eq "") {
-			Write-Host "Plak hier a.u.b. de link in." -ForegroundColor Red
+			Write-Host "Plak hier a.u.b. de link in."
 		}
 		else {
 			if ($isWindows) {
 				New-Item -ItemType Directory -Path HKCU:\Software\rooster -Force
-				New-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl" -Value $URLInput -PropertyType String -Force | Out-Null && Write-Host "Link succesvol geregistreerd." -ForegroundColor Green || Write-Host "Er is een fout opgetreden bij het registreren van de link." -ForegroundColor Red
+				New-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl" -Value $URLInput -PropertyType String -Force | Out-Null && Write-Host "Link succesvol geregistreerd." -ForegroundColor Green || Write-Host "Er is een fout opgetreden bij het registreren van de link."
 			}
 			elseif ($isLinux) {
 				New-Item -ItemType Directory -Path ~/.config/rooster -Force
-				New-Item -Path "~/.config/rooster" -Name "icsUrl" -ItemType File -Value $URLInput -Force | Out-Null && Write-Host "Link succesvol geregistreerd." -ForegroundColor Green || Write-Host "Er is een fout opgetreden bij het registreren van de link." -ForegroundColor Red
+				New-Item -Path "~/.config/rooster" -Name "icsUrl" -ItemType File -Value $URLInput -Force | Out-Null && Write-Host "Link succesvol geregistreerd." -ForegroundColor Green || Write-Host "Er is een fout opgetreden bij het registreren van de link."
 			}
 		}
 	}
 }
 else {
-	Write-Host "Error #2" -Foregroundcolor Red
+	throw "Error #2"
 	Write-Host 'Probeer "./rooster --help" in je terminal (waarschijnlijk cmd) uit te voeren.'
 	Write-Host ""
 	if ($isWindows) {
