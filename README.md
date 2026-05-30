@@ -2,7 +2,7 @@
 
 ## Installatie
 
-1. Download [rooster.psm1](./releases).
+1. Download [rooster.psm1](../../releases).
 2. Kopieer rooster.psm1 naar je CurrentUser modules pad (zie [hier](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.6#long-description)).
 3. Plak ```Import-Module $HOME/.local/share/powershell/Modules/rooster.psm1``` in ```$profile```.
 4. Voer ```rooster``` uit.
@@ -25,4 +25,4 @@ Voer "rooster -r" uit om je rooster te zien. Als je een vak wil opzoeken in je r
 
 ### Help
 
-Voer "rooster --help" uit en je krijgt help.
+Voer "rooster --help" uit en je krijgt hulp.
