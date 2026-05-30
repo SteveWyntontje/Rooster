@@ -280,7 +280,7 @@ elseif ($Args[0] -eq "--register") {
 			New-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl" -Value $Args[1] -PropertyType String -Force | Out-Null
 		}
 		elseif ($isLinux) {
-			New-Item -Path ~/.config/rooster -Name "icsUrl" -ItemType "File" -Value $Args[1]
+			New-Item -Path ~/.config/rooster -Name "icsUrl" -ItemType "File" -Value $Args[1] | Out-Null
 		}
 	}
 	else {
