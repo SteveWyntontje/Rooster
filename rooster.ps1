@@ -8,7 +8,7 @@ Function Import-ICS {
 		$icsContent = $response.Content
 	}
 	catch {
-		throw "Kan het .ics-bestand niet downloaden."		
+		Write-Error "Kan het .ics-bestand niet downloaden."		
 	}
 
 	$events = @()
