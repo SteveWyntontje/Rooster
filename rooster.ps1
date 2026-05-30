@@ -58,17 +58,12 @@ Function Import-ICS {
 		if (-not $event.ContainsKey("SUMMARY") -or -not $event.ContainsKey("DTSTART") -or -not $event.ContainsKey("DTEND")) {
 			continue
 		}
-
+		$match = [regex]::Match($summary, '(?<lokaal>[a-z0-9]{1,4}) - (?<klas>[a-z0-9]{1,2}?)(?<vak>[a-zA-Z]{2,8})')
+		$extractedLokaal = $match.Groups['lokaal'].Value
+		$extractedKlas   = $match.Groups['klas'].Value
+		$extractedVak    = $match.Groups['vak'].Value
 		$summary = $event["SUMMARY"]
-		$extractedLokaal = ([regex]::Match($summary, '([a-z0-9]{1,4})')).Groups[1].Value
-		$extractedKlas = ([regex]::Match($summary, "$extractedLokaal - ([a-z0-9]{1})")).Groups[1].Value
-		$extractedVak = ([regex]::Match($summary, "$extractedKlas([a-zA-Z]{2,8})")).Groups[1].Value
-		if ($extractedVak -match "^[a-zA-Z]{8,10}$") {
-			$extractedVak = ""
-		}
-		if ($extractedVak -eq "") {
-			continue
-		}
+
 		if (-not $Vakken.Contains($extractedVak)) {
 			$Vakken += $extractedVak
 		}
@@ -84,7 +79,6 @@ Function Import-ICS {
 			$testingEndTime = [datetime]::ParseExact($lessonEndTimes[$i], "HH:mm", $null)
 			if ($startTime -eq $testingStartTime.TimeOfDay -and $endTime -eq $testingEndTime.TimeOfDay) {
 				$lessonSlot[$i] = ($i + 1)
-				break
 			}
 		}
 
@@ -108,9 +102,9 @@ Function Import-ICS {
 		$dayCode = $startDate.ToString("ddd", [System.Globalization.CultureInfo]::GetCultureInfo("nl-NL")).ToUpperInvariant().Substring(0, 2)
 
 		if ($days.ContainsKey($dayCode)) {
-				if (-not $days[$dayCode].Contains($extractedVak)) {
-					$days[$dayCode] += $extractedVak
-				}
+			if (-not $days[$dayCode].Contains($extractedVak)) {
+				$days[$dayCode] += $extractedVak
+			}
 		}
 	}
 	
@@ -125,7 +119,6 @@ Function Import-ICS {
 	}
 
 	$Vakken = $Vakken | Sort-Object
-	Write-Host $vakken
 	return $Vakken
 }
 Function New-Table {
@@ -322,5 +315,5 @@ else {
 	elseif ($isLinux) {
 		echo "Press any key to continue..."; bash -c "read -n1"
 	}
-	exit 2
+	return 2
 }
