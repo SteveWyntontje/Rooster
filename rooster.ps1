@@ -151,21 +151,21 @@ Function New-Table {
 	$table += $seprow1
 
 	for ($hour = 1; $hour -le 9; $hour++) {
-		$row = "   $hour" + "e   |"
+		$row = "   $hour" + "e   ┃"
 		foreach ($day in @("Ma", "Di", "Wo", "Do", "Vr")) {
 			if ($Days.ContainsKey($day) -and $Days[$day].Count -ge $hour) {
 				if ($($Days[$day][$hour - 1]).Length -eq 3) {
-					$row += "  $($Days[$day][$hour - 1])  │"
+					$row += "   $($Days[$day][$hour - 1])  │"
 				}
 				elseif ($($Days[$day][$hour - 1]).Length -eq 4) {
-					$row += "  $($Days[$day][$hour - 1]) │"
+					$row += "   $($Days[$day][$hour - 1]) │"
 				}
 				else {
-					$row += "  $($Days[$day][$hour - 1])│"
+					$row += "   $($Days[$day][$hour - 1])│"
 				}
 			}
 			else {
-				$row += "       │"
+				$row += "        │"
 			}
 		}
 		$table += $row
