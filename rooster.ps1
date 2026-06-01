@@ -5,7 +5,7 @@ Param (
 	[ValidateSet('Ma','Di','Wo','Do','Vr')][string]$Dag,
 	[int]$Uur,
 	[switch]$Registreer,
-	[switch]$Help
+	[switch]$Help,
 	[string]$Zoek
 )
 
