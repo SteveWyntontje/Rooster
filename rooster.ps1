@@ -1,6 +1,5 @@
 Param (
 	[CmdletBinding()]
-
 	[switch]$Tabel,
 	[ValidateSet('Ma','Di','Wo','Do','Vr')][string]$Dag,
 	[int]$Uur,
@@ -69,11 +68,11 @@ Function Import-ICS {
 		if (-not $event.ContainsKey("SUMMARY") -or -not $event.ContainsKey("DTSTART") -or -not $event.ContainsKey("DTEND")) {
 			continue
 		}
+		$summary = $event["SUMMARY"]
 		$match = [regex]::Match($summary, '(?<lokaal>[a-z0-9]{1,4}) - (?<klas>[a-z0-9]{1,2}?)(?<vak>[a-zA-Z]{2,8})')
 		$extractedLokaal = $match.Groups['lokaal'].Value
 		$extractedKlas = $match.Groups['klas'].Value
 		$extractedVak = $match.Groups['vak'].Value
-		$summary = $event["SUMMARY"]
 
 		if (-not $Vakken.Contains($extractedVak)) {
 			$Vakken += $extractedVak
@@ -121,6 +120,8 @@ Function Import-ICS {
 	$script:Donderdag = $days["Do"]
 	$script:Vrijdag = $days["Vr"]
 
+	Write-Verbose $days
+
 	foreach ($vak in $VakTimes.Keys) {
 		if ($vak) {
 			Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
@@ -129,6 +130,7 @@ Function Import-ICS {
 
 	$Vakken = $Vakken | Sort-Object
 	return $Vakken
+	Write-Verbose $vakken
 }
 Function New-Table {
 	Param (
