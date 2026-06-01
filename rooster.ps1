@@ -206,8 +206,8 @@ $DagMap = @{
 }
 
 if ($Help) {
-	write-host "rooster [-Dag <dag> [-Uur <uur>]] [-Rooster] [-Zoek <vak>] [-Registreer [<URL>]] [-Help]"
-	write-host '-Rooster		Geeft het rooster weer.'
+	write-host "rooster [-Dag <dag> [-Uur <uur>]] [-Tabel] [-Zoek <vak>] [-Registreer [<URL>]] [-Help]"
+	write-host '-Tabel			Geeft het rooster weer.'
 	write-host '-Zoek			Zoekt wanneer een vak is.'
 	write-host '-Dag			De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
 	write-host '-Uur			Het uur.'
@@ -219,7 +219,7 @@ if ($Help) {
 	write-host 'Error #2 betekent "Verkeerde argumenten".'
 	write-host 'Error #3 betekent "Algemene Fout".'
 }
-elseif ($Args[0] -eq "-d") {
+elseif (-not $Dag -eq "") {
 	if ($DagMap.ContainsKey($Args[1])) {
 		$SelectedDag = $DagMap[$Args[1]]
 		if ($Dagen -contains $SelectedDag) {
@@ -230,9 +230,9 @@ elseif ($Args[0] -eq "-d") {
 					Write-Host $DayArray[$Counter - 1]
 				}
 			}
-			elseif ($Args.Count -eq 4 -and $Args[2] -eq "-u" -and $Args[3] -match "^[1-9]$") {
+			elseif ($Args.Count -eq 4 -and $Uur -and $Uur -match "^[1-9]$") {
 				$DayArray = Get-Variable -Name $SelectedDag -ValueOnly
-				$HourIndex = [int]$Args[3] - 1
+				$HourIndex = [int]$Uur - 1
 				$HourValue = $DayArray[$HourIndex]
 				if ($HourValue -eq "Error #1") {
 					throw $HourValue
@@ -253,7 +253,7 @@ elseif ($Args[0] -eq "-d") {
 		throw "Error #2"
 	}
 }
-elseif ($Args[0] -eq "-s" -Or $Args[0] -eq "--search") {
+elseif ($Zoek) {
 	[int]$NietVakCount = 0
 	[int]$WelVakCount = 0
 	[int]$VakkenCounter = 0
@@ -278,13 +278,13 @@ elseif ($Args[0] -eq "-s" -Or $Args[0] -eq "--search") {
 		}
 	}
 }
-elseif ($Args[0] -eq "-r" -Or $Args[0] -eq "--rooster") {
+elseif ($Tabel) {
 	for ($i = 0; $i -lt 19; $i++) {
 		write-host $row[$i]
 	}
-	write-host `n -NoNewline
+	write-host ""
 }
-elseif ($Args[0] -eq "--register") {
+elseif ($Registreer) {
 	if ($Args.Count -eq 2) {
 		if ($isWindows) {
 			New-ItemProperty -Path "HKCU:\Software\rooster" -Name "icsUrl" -Value $Args[1] -PropertyType String -Force | Out-Null
