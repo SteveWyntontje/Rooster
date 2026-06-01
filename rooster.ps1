@@ -1,5 +1,17 @@
+Param (
+	[CmdletBinding()]
+
+	[switch]$Tabel,
+	[ValidateSet('Ma','Di','Wo','Do','Vr')][string]$Dag,
+	[int]$Uur,
+	[switch]$Registreer,
+	[switch]$Help
+	[string]$Zoek
+)
+
 Function Import-ICS {
 	Param (
+		[CmdletBinding()]
 		[string]$Url
 	)
 
@@ -59,30 +71,26 @@ Function Import-ICS {
 		}
 		$match = [regex]::Match($summary, '(?<lokaal>[a-z0-9]{1,4}) - (?<klas>[a-z0-9]{1,2}?)(?<vak>[a-zA-Z]{2,8})')
 		$extractedLokaal = $match.Groups['lokaal'].Value
-		$extractedKlas   = $match.Groups['klas'].Value
-		$extractedVak    = $match.Groups['vak'].Value
+		$extractedKlas = $match.Groups['klas'].Value
+		$extractedVak = $match.Groups['vak'].Value
 		$summary = $event["SUMMARY"]
 
 		if (-not $Vakken.Contains($extractedVak)) {
 			$Vakken += $extractedVak
 		}
 		
-		$startDate = [datetime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmssZ", $null)
+		$startDate = [DateTime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmssZ", $null)
 		$startTime = $startDate.TimeOfDay
-		$endDate = [datetime]::ParseExact($event["DTEND"], "yyyyMMddTHHmmssZ", $null)
+		$endDate = [DateTime]::ParseExact($event["DTEND"], "yyyyMMddTHHmmssZ", $null)
 		$endTime = $endDate.TimeOfDay
 
 		$lessonSlot = @{}
-		for ($i = 0; $i -lt $lessonStartTimes.Count - 1; $i++) {
-			$testingStartTime = [datetime]::ParseExact($lessonStartTimes[$i], "HH:mm", $null)
-			$testingEndTime = [datetime]::ParseExact($lessonEndTimes[$i], "HH:mm", $null)
+		for ($i = 0; $i -lt $lessonStartTimes.Count; $i++) {
+			$testingStartTime = [DateTime]::ParseExact($lessonStartTimes[$i], "HH:mm", $null)
+			$testingEndTime = [DateTime]::ParseExact($lessonEndTimes[$i], "HH:mm", $null)
 			if ($startTime -eq $testingStartTime.TimeOfDay -and $endTime -eq $testingEndTime.TimeOfDay) {
 				$lessonSlot[$i] = ($i + 1)
 			}
-		}
-
-		if (-not $lessonSlot) {
-			continue
 		}
 
 		$dayShort = $startDate.ToString("ddd", [System.Globalization.CultureInfo]::GetCultureInfo("nl-NL"))
@@ -107,18 +115,15 @@ Function Import-ICS {
 		}
 	}
 	
-	$Global:Maandag = $days["Ma"]
-	$Global:Dinsdag = $days["Di"]
-	$Global:Woensdag = $days["Wo"]
-	$Global:Donderdag = $days["Do"]
-	$Global:Vrijdag = $days["Vr"]
+	$script:Maandag = $days["Ma"]
+	$script:Dinsdag = $days["Di"]
+	$script:Woensdag = $days["Wo"]
+	$script:Donderdag = $days["Do"]
+	$script:Vrijdag = $days["Vr"]
 
 	foreach ($vak in $VakTimes.Keys) {
 		if ($vak) {
 			Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
-		}
-		else {
-			continue
 		}
 	}
 
@@ -127,19 +132,20 @@ Function Import-ICS {
 }
 Function New-Table {
 	Param (
+		[CmdletBinding()]
 		[hashtable]$Days
 	)
 
 	if (-not $Days) {
-		throw "Error #3"
+		Write-Error "Error #3"
 		return @()
 	}
 
 	$table = @()
 
-	$dayrow = "  Dag	|  Ma  ｜  Di  ｜  Wo  ｜  Do  ｜  Vr  ｜"
-	$seprow1 = "════════|═══════════════════════════════════════"
-	$seprow2 = "⎯⎯⎯⎯⎯⎯⎯⎯|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+	$dayrow = "  Dag	┃  Ma  │  Di  │  Wo  │  Do  │  Vr  │"
+	$seprow1 = "━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	$seprow2 = "────────╂───────────────────────────────────────"
 
 	$table += $dayrow
 	$table += $seprow1
@@ -159,7 +165,7 @@ Function New-Table {
 				}
 			}
 			else {
-				$row += "       ｜"
+				$row += "      ｜"
 			}
 		}
 		$table += $row
@@ -199,14 +205,14 @@ $DagMap = @{
 	"Vr" = "Vrijdag"
 }
 
-if ($Args[0] -eq "--help" -Or $Args[0] -eq "-h") {
-	write-host "ROOSTER [-d <dag> [-u <uur>]] [-r] [-s <vak>] [--register [<URL>]] [-h]"
-	write-host '-r, --rooster	Geeft het rooster weer.'
-	write-host '-s, --search	Zoekt wanneer een vak is.'
-	write-host '-d		De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
-	write-host '-u		Het uur.'
-	write-host '--register		Registreert jouw Somtoday.'
-	write-host '-h, --help		Toont deze helptekst.'
+if ($Help) {
+	write-host "rooster [-Dag <dag> [-Uur <uur>]] [-Rooster] [-Zoek <vak>] [-Registreer [<URL>]] [-Help]"
+	write-host '-Rooster		Geeft het rooster weer.'
+	write-host '-Zoek			Zoekt wanneer een vak is.'
+	write-host '-Dag			De dag. Als je geen uur opgeeft, worden alle uren van die dag weergegeven.'
+	write-host '-Uur			Het uur.'
+	write-host '-Registreer		Registreert jouw Somtoday.'
+	write-host '-Help			Toont deze helptekst.'
 	write-host 'Dagen: Ma, Di, Wo, Do, Vr.'
 	write-host 'Vakken: Is afhankelijk van wat je zelf hebt. '
 	write-host 'Error #1 betekent "Geen Les Hier".'
