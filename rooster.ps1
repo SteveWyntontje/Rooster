@@ -316,7 +316,7 @@ elseif ($Args[0] -eq "--register") {
 	}
 }
 else {
-	throw "Error #2"
+	Write-Error "Error #2"
 	Write-Host 'Probeer "./rooster --help" in je terminal (waarschijnlijk cmd) uit te voeren.'
 	Write-Host ""
 	if ($isWindows) {
