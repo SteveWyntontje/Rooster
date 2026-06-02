@@ -1,8 +1,11 @@
 Param (
 	[CmdletBinding()]
 	[switch]$Tabel,
+	[ValidateSet('Ma','Di','Wo','Do','Vr')][string]$Dag,
+	[int]$Uur,
 	[switch]$Registreer,
-	[switch]$Help
+	[switch]$Help,
+	[string]$Zoek
 )
 
 Function Import-ICS {
@@ -110,13 +113,13 @@ Function Import-ICS {
 			}
 		}
 	}
-
+	
 	$script:Maandag = $days["Ma"]
 	$script:Dinsdag = $days["Di"]
 	$script:Woensdag = $days["Wo"]
 	$script:Donderdag = $days["Do"]
 	$script:Vrijdag = $days["Vr"]
-	
+
 	Write-Verbose $days
 
 	foreach ($vak in $VakTimes.Keys) {
@@ -218,6 +221,65 @@ if ($Help) {
 	write-host 'Error #2 betekent "Verkeerde argumenten".'
 	write-host 'Error #3 betekent "Algemene Fout".'
 }
+elseif (-not $Dag -eq "") {
+	if ($DagMap.ContainsKey($Args[1])) {
+		$SelectedDag = $DagMap[$Args[1]]
+		if ($Dagen -contains $SelectedDag) {
+			if ($Args.Count -eq 2) {
+				$DayArray = Get-Variable -Name $SelectedDag -ValueOnly
+				for ($Counter = 1; $Counter -le 9; $Counter++) {
+					Write-Host $Counter"e: " -NoNewline
+					Write-Host $DayArray[$Counter - 1]
+				}
+			}
+			elseif ($Args.Count -eq 4 -and $Uur -and $Uur -match "^[1-9]$") {
+				$DayArray = Get-Variable -Name $SelectedDag -ValueOnly
+				$HourIndex = [int]$Uur - 1
+				$HourValue = $DayArray[$HourIndex]
+				if ($HourValue -eq "Error #1") {
+					throw $HourValue
+				}
+				else {
+					Write-Host $HourValue
+				}
+			}
+			else {
+				throw "Error #2"
+			}
+		}
+		else {
+			throw "Error #3"
+		}
+	}
+	else {
+		throw "Error #2"
+	}
+}
+elseif ($Zoek) {
+	[int]$NietVakCount = 0
+	[int]$WelVakCount = 0
+	[int]$VakkenCounter = 0
+	while ($VakkenCounter -le $Vakken.count) {
+		if ($Args[1] -ne $Vakken[$VakkenCounter]) {
+			$NietVakCount++
+		}
+		else {
+			$WelVakCount++
+		}
+		$VakkenCounter++
+	}
+	if ($WelVakCount -eq 1) {
+		[int]$SearchCounter = 0
+		while ($SearchCounter -le $($Args[1]).Length) {
+			foreach ($Vak in $Vakken) {
+				if ($Args[1] -eq $Vak) {
+					write-host $(Get-Variable -Name $Args[1] -ValueOnly)[$SearchCounter]
+					$SearchCounter++
+				}
+			}
+		}
+	}
+}
 elseif ($Tabel) {
 	for ($i = 0; $i -lt 19; $i++) {
 		write-host $row[$i]
@@ -254,4 +316,16 @@ elseif ($Registreer) {
 			}
 		}
 	}
+}
+else {
+	Write-Error "Error #2"
+	Write-Host 'Probeer "./rooster --help" in je terminal (waarschijnlijk cmd) uit te voeren.'
+	Write-Host ""
+	if ($isWindows) {
+		cmd /c pause
+	}
+	elseif ($isLinux) {
+		echo "Press any key to continue..."; bash -c "read -n1"
+	}
+	return 2
 }
