@@ -60,7 +60,6 @@ Function Import-ICS {
 		"Vr" = @()
 	}
 
-	$Vakken = @()
 	foreach ($event in $events) {
 		if (-not $event.ContainsKey("SUMMARY") -or -not $event.ContainsKey("DTSTART") -or -not $event.ContainsKey("DTEND")) {
 			continue
@@ -71,36 +70,10 @@ Function Import-ICS {
 		$extractedKlas = $match.Groups['klas'].Value
 		$extractedVak = $match.Groups['vak'].Value
 
-		if (-not $Vakken.Contains($extractedVak)) {
-			$Vakken += $extractedVak
-		}
-		
 		$startDate = [DateTime]::ParseExact($event["DTSTART"], "yyyyMMddTHHmmssZ", $null)
 		$startTime = $startDate.TimeOfDay
 		$endDate = [DateTime]::ParseExact($event["DTEND"], "yyyyMMddTHHmmssZ", $null)
 		$endTime = $endDate.TimeOfDay
-
-		$lessonSlot = @{}
-		for ($i = 0; $i -lt $lessonStartTimes.Count; $i++) {
-			$testingStartTime = [DateTime]::ParseExact($lessonStartTimes[$i], "HH:mm", $null)
-			$testingEndTime = [DateTime]::ParseExact($lessonEndTimes[$i], "HH:mm", $null)
-			if ($startTime -eq $testingStartTime.TimeOfDay -and $endTime -eq $testingEndTime.TimeOfDay) {
-				$lessonSlot[$i] = ($i + 1)
-			}
-		}
-
-		$dayShort = $startDate.ToString("ddd", [System.Globalization.CultureInfo]::GetCultureInfo("nl-NL"))
-		$dayShort = $dayShort.ToLower()
-		$dag = $dayShort.Substring(0, 1).ToUpper() + $dayShort.Substring(1)
-
-		$uur = "$($lessonSlot.Values[0])e"
-		$slot = "${dag}: $uur"
-		if (-not $VakTimes.ContainsKey($extractedVak)) {
-			$VakTimes[$extractedVak] = @()
-		}
-		if (-not $VakTimes[$extractedVak].Contains($slot)) {
-			$VakTimes[$extractedVak] += $slot
-		}
 
 		$dayCode = $startDate.ToString("ddd", [System.Globalization.CultureInfo]::GetCultureInfo("nl-NL")).ToUpperInvariant().Substring(0, 2)
 
@@ -116,18 +89,10 @@ Function Import-ICS {
 	$script:Woensdag = $days["Wo"]
 	$script:Donderdag = $days["Do"]
 	$script:Vrijdag = $days["Vr"]
-	
+
 	Write-Verbose $days
 
-	foreach ($vak in $VakTimes.Keys) {
-		if ($vak) {
-			Set-Variable -Name $vak -Value $VakTimes[$vak] -Scope Global
-		}
-	}
-
-	$Vakken = $Vakken | Sort-Object
-	return $Vakken
-	Write-Verbose $vakken
+	return
 }
 Function New-Table {
 	Param (
@@ -168,7 +133,7 @@ Function New-Table {
 			}
 		}
 		$table += $row
-		if ($hour -lt 9) {
+		if ($hour -le 9) {
 			$table += $seprow2
 		}
 	}
@@ -182,7 +147,7 @@ elseif ($isLinux) {
 	Test-Path "~/.config/rooster/icsUrl" | Out-Null || throw "Error #3`nVoer eerst `"rooster --register`"uit`n" && set-variable icsUrl (Get-Content -Path ~/.config/rooster/icsUrl)
 }
 
-$Vakken = Import-ICS -Url $icsUrl
+Import-ICS -Url $icsUrl
 
 $Days = @{
 	"Ma" = $Maandag
